@@ -1,0 +1,19 @@
+# Profile "postgres": destinado a cenarios de producao e testes de performance
+# (centenas de milhares de votos). Ative com: --spring.profiles.active=postgres
+# Suba o banco com: docker compose up -d
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/votacao}
+    username: ${DB_USERNAME:votacao}
+    password: ${DB_PASSWORD:votacao}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:20}
+
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  h2:
+    console:
+      enabled: false

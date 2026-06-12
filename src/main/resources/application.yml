@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: votacao
+
+  # Profile padrao: H2 em arquivo. Persiste entre reinicios e nao exige
+  # nenhuma dependencia externa para executar/avaliar a aplicacao.
+  datasource:
+    url: jdbc:h2:file:./data/votacao;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+server:
+  port: 8080
+
+# Configuracoes de dominio da aplicacao
+votacao:
+  sessao:
+    duracao-padrao-minutos: 1
+  cpf-client:
+    # URL de callback do servico externo de validacao de CPF.
+    # Deixada parametrizavel para facilitar troca entre emulador / dispositivo / mock.
+    base-url: http://localhost:8080/fake-cpf-service
+
+# Exposicao de metricas para observabilidade / testes de performance
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.desafio.votacao: INFO
