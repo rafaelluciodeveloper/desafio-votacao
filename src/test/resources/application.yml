@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:votacao-test;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+votacao:
+  sessao:
+    duracao-padrao-minutos: 1
+  cpf-client:
+    base-url: http://localhost:8080/fake-cpf-service
+
+logging:
+  level:
+    com.desafio.votacao: WARN
