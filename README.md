@@ -1,117 +1,266 @@
-# Votação
+# API de Votação
 
-## Objetivo
+API REST para gerenciar e participar de sessões de votação em assembleias de cooperativas.
+Cada associado possui um voto e as decisões são tomadas por votação em pautas.
 
-No cooperativismo, cada associado possui um voto e as decisões são tomadas em assembleias, por votação. Imagine que você deve criar uma solução para dispositivos móveis para gerenciar e participar dessas sessões de votação.
-Essa solução deve ser executada na nuvem e promover as seguintes funcionalidades através de uma API REST:
+> O enunciado original do desafio está preservado em [DESAFIO.md](DESAFIO.md).
 
-- Cadastrar uma nova pauta
-- Abrir uma sessão de votação em uma pauta (a sessão de votação deve ficar aberta por
-  um tempo determinado na chamada de abertura ou 1 minuto por default)
-- Receber votos dos associados em pautas (os votos são apenas 'Sim'/'Não'. Cada associado
-  é identificado por um id único e pode votar apenas uma vez por pauta)
-- Contabilizar os votos e dar o resultado da votação na pauta
+## Sumário
 
-Para fins de exercício, a segurança das interfaces pode ser abstraída e qualquer chamada para as interfaces pode ser considerada como autorizada. A solução deve ser construída em java, usando Spring-boot, mas os frameworks e bibliotecas são de livre escolha (desde que não infrinja direitos de uso).
+- [Funcionalidades](#funcionalidades)
+- [Stack e decisões de arquitetura](#stack-e-decisões-de-arquitetura)
+- [Como executar](#como-executar)
+- [Documentação da API (Swagger)](#documentação-da-api-swagger)
+- [Endpoints](#endpoints)
+- [Exemplo de uso ponta a ponta](#exemplo-de-uso-ponta-a-ponta)
+- [Testes](#testes)
+- [Tarefas bônus](#tarefas-bônus)
+- [Tratamento de erros](#tratamento-de-erros)
 
-É importante que as pautas e os votos sejam persistidos e que não sejam perdidos com o restart da aplicação.
+## Funcionalidades
 
-O foco dessa avaliação é a comunicação entre o backend e o aplicativo mobile. Essa comunicação é feita através de mensagens no formato JSON, onde essas mensagens serão interpretadas pelo cliente para montar as telas onde o usuário vai interagir com o sistema. A aplicação cliente não faz parte da avaliação, apenas os componentes do servidor. O formato padrão dessas mensagens será detalhado no anexo 1.
+- ✅ Cadastrar uma nova pauta
+- ✅ Abrir uma sessão de votação em uma pauta (duração informada na chamada **ou 1 minuto por default**)
+- ✅ Receber votos dos associados (`SIM`/`NAO`; cada associado vota **uma única vez** por pauta)
+- ✅ Contabilizar os votos e dar o resultado da votação
+- ✅ Persistência (os dados sobrevivem ao restart da aplicação)
+- ✅ **Bônus 1** – Integração com serviço externo de validação de CPF (client Fake)
+- ✅ **Bônus 2** – Performance para centenas de milhares de votos (+ script de carga)
+- ✅ **Bônus 3** – Estratégia de versionamento da API
 
-## Como proceder
+## Stack e decisões de arquitetura
 
-Por favor, **CLONE** o repositório e implemente sua solução, ao final, notifique a conclusão e envie o link do seu repositório clonado no GitHub, para que possamos analisar o código implementado.
+| Tema | Escolha | Por quê |
+|------|---------|---------|
+| Linguagem / Framework | Java 17 + Spring Boot 3.3 | Exigência do desafio; ecossistema maduro |
+| Persistência | Spring Data JPA | Mapeamento objeto-relacional simples e testável |
+| Banco (default) | **H2 em arquivo** (`./data`) | Persiste entre reinícios **sem nenhuma dependência externa** para o avaliador rodar |
+| Banco (produção/perf) | **PostgreSQL** via profile `postgres` | Cenário realista de alto volume |
+| Migrations | Flyway | Schema versionado e reproduzível (SQL padrão compatível com H2 e Postgres) |
+| Documentação | springdoc-openapi (Swagger UI) | Documentação viva da API |
+| Observabilidade | Spring Actuator | Health e métricas para os testes de performance |
+| Boilerplate | Lombok | Menos código repetitivo nas entidades |
 
-Lembre de deixar todas as orientações necessárias para executar o seu código.
-
-### Tarefas bônus
-
-- Tarefa Bônus 1 - Integração com sistemas externos
-  - Criar uma Facade/Client Fake que retorna aleátoriamente se um CPF recebido é válido ou não.
-  - Caso o CPF seja inválido, a API retornará o HTTP Status 404 (Not found). Você pode usar geradores de CPF para gerar CPFs válidos
-  - Caso o CPF seja válido, a API retornará se o usuário pode (ABLE_TO_VOTE) ou não pode (UNABLE_TO_VOTE) executar a operação. Essa operação retorna resultados aleatórios, portanto um mesmo CPF pode funcionar em um teste e não funcionar no outro.
+**Organização do código** – pacotes por *feature* (domínio), não por camada técnica. Cada
+domínio concentra entidade, repositório, serviço, controller e DTOs:
 
 ```
-// CPF Ok para votar
+com.desafio.votacao
+├── pauta/      cadastro e consulta de pautas
+├── sessao/     abertura e consulta de sessões de votação
+├── voto/       registro de votos e apuração do resultado
+├── cpf/        integração externa de validação de CPF (Bônus 1)
+├── config/     OpenAPI e propriedades configuráveis
+└── exception/  tratamento centralizado de erros (RestControllerAdvice)
+```
+
+Princípios aplicados: design simples (sem over-engineering), regras de negócio nos *services*,
+controllers finos, DTOs separados das entidades, e validações tanto na borda (Bean Validation)
+quanto no banco (constraints).
+
+## Como executar
+
+**Pré-requisitos:** Java 17+ e Maven 3.9+ (ou use o `mvnw` se preferir).
+
+### Opção 1 — H2 em arquivo (default, recomendado para avaliar)
+
+Nenhuma dependência externa. O banco é criado em `./data` e persiste entre reinícios.
+
+```bash
+mvn spring-boot:run
+```
+
+ou via jar:
+
+```bash
+mvn clean package
+java -jar target/votacao-1.0.0.jar
+```
+
+A aplicação sobe em `http://localhost:8080`.
+
+### Opção 2 — PostgreSQL (cenário de produção/performance)
+
+```bash
+docker compose up -d
+mvn spring-boot:run -Dspring-boot.run.profiles=postgres
+```
+
+As credenciais/URL podem ser sobrescritas por variáveis de ambiente
+(`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_POOL_SIZE`).
+
+### Configurações relevantes (`application.yml`)
+
+```yaml
+votacao:
+  sessao:
+    duracao-padrao-minutos: 1      # default de 1 minuto quando a abertura não informa duração
+  cpf-client:
+    base-url: http://localhost:8080/fake-cpf-service   # URL de callback parametrizável
+```
+
+> A URL do serviço externo é **configurável** (conforme a dica do enunciado sobre URLs de
+> callback passíveis de alteração por configuração, facilitando o teste em emulador/dispositivo).
+
+## Documentação da API (Swagger)
+
+Com a aplicação no ar:
+
+- Swagger UI: <http://localhost:8080/swagger-ui.html>
+- OpenAPI JSON: <http://localhost:8080/v3/api-docs>
+- Console H2 (profile default): <http://localhost:8080/h2-console> (JDBC URL `jdbc:h2:file:./data/votacao`)
+- Health: <http://localhost:8080/actuator/health>
+
+## Endpoints
+
+Base path versionada: `/api/v1`
+
+| Método | Caminho | Descrição |
+|--------|---------|-----------|
+| `POST` | `/api/v1/pautas` | Cadastrar nova pauta |
+| `GET`  | `/api/v1/pautas` | Listar pautas |
+| `GET`  | `/api/v1/pautas/{id}` | Consultar pauta |
+| `POST` | `/api/v1/pautas/{id}/sessao` | Abrir sessão de votação (body opcional `{ "duracaoMinutos": N }`) |
+| `GET`  | `/api/v1/pautas/{id}/sessao` | Consultar sessão e seu status (`ABERTA`/`ENCERRADA`) |
+| `POST` | `/api/v1/pautas/{id}/votos` | Registrar voto (`{ "associadoId": "<cpf>", "opcao": "SIM\|NAO" }`) |
+| `GET`  | `/api/v1/pautas/{id}/resultado` | Contabilizar votos e obter resultado |
+
+## Exemplo de uso ponta a ponta
+
+```bash
+# 1. Criar pauta
+curl -X POST http://localhost:8080/api/v1/pautas \
+  -H "Content-Type: application/json" \
+  -d '{"titulo":"Reforma do estatuto","descricao":"Aprovar reforma"}'
+
+# 2. Abrir sessão por 5 minutos (omita o body para usar o default de 1 minuto)
+curl -X POST http://localhost:8080/api/v1/pautas/1/sessao \
+  -H "Content-Type: application/json" \
+  -d '{"duracaoMinutos":5}'
+
+# 3. Votar (use CPFs válidos gerados; o client Fake decide aleatoriamente a aptidão)
+curl -X POST http://localhost:8080/api/v1/pautas/1/votos \
+  -H "Content-Type: application/json" \
+  -d '{"associadoId":"12345678909","opcao":"SIM"}'
+
+# 4. Resultado
+curl http://localhost:8080/api/v1/pautas/1/resultado
+```
+
+Resposta do resultado:
+
+```json
 {
-    "status": "ABLE_TO_VOTE
+  "pautaId": 1,
+  "sessaoId": 1,
+  "tituloPauta": "Reforma do estatuto",
+  "sessaoEncerrada": false,
+  "totalVotos": 3,
+  "votosSim": 2,
+  "votosNao": 1,
+  "resultado": "APROVADA"
 }
-// CPF Nao Ok para votar - retornar 404 no client tb
+```
+
+`resultado` pode ser `APROVADA`, `REPROVADA` ou `EMPATE`.
+
+## Testes
+
+```bash
+mvn test
+```
+
+Cobertura de testes:
+
+- **Unitários** (`VotoServiceTest`, `SessaoVotacaoServiceTest`) – regras de negócio isoladas com
+  Mockito: sessão fechada, CPF inválido (404), `UNABLE_TO_VOTE`, voto duplicado, corrida de voto
+  duplicado (constraint), apuração (aprovada/empate), duração default vs. informada, sessão já aberta.
+- **Integração** (`VotacaoIntegrationTest`) – fluxo completo via `MockMvc` sobre o contexto real
+  (H2 em memória): cadastro → abertura → votos → apuração, voto duplicado (409), CPF inválido (404),
+  voto sem sessão (404) e validação de payload (400).
+
+## Tarefas bônus
+
+### Bônus 1 — Integração com sistema externo (validação de CPF)
+
+`CpfValidationClient` é a abstração do serviço externo; `FakeCpfValidationClient` é a implementação
+fake (`com.desafio.votacao.cpf`):
+
+- ~30% dos CPFs são considerados **inválidos** → a API responde **HTTP 404 (Not Found)**.
+- Para CPFs válidos, retorna aleatoriamente `ABLE_TO_VOTE` ou `UNABLE_TO_VOTE` — o mesmo CPF pode
+  variar entre chamadas.
+- `UNABLE_TO_VOTE` impede o voto com **HTTP 422**.
+
+A interface permite trocar o fake por um client HTTP real sem tocar nas regras de votação. A URL
+de callback é parametrizável (`votacao.cpf-client.base-url`).
+
+### Bônus 2 — Performance
+
+Decisões para suportar **centenas de milhares de votos**:
+
+- **Apuração por agregação no banco** (`COUNT ... GROUP BY opção`) em vez de carregar votos em
+  memória — custo O(1) de transferência independente do volume.
+- **Índice composto** `idx_voto_sessao_opcao (sessao_id, opcao)` que cobre exatamente a query de
+  contagem.
+- **Unicidade garantida no banco** (`uk_voto_sessao_associado`) — evita race conditions de voto
+  duplicado sob concorrência, em vez de depender só de checagem em memória.
+- `open-in-view: false`, *batch inserts* do Hibernate e pool de conexões dimensionável.
+- Profile **PostgreSQL** + `docker-compose.yml` para o cenário de carga.
+
+Script de carga com **k6** em [`performance/load-test.js`](performance/load-test.js) (rampa até
+200 usuários virtuais, *threshold* de p95 < 300ms). Instruções no cabeçalho do arquivo.
+
+### Bônus 3 — Versionamento da API
+
+**Estratégia adotada: versionamento por URI** (`/api/v1/...`).
+
+Por que URI versioning:
+
+- **Explícito e visível** — a versão fica clara na própria URL, fácil de testar via browser/cURL e
+  de rotear em gateways/proxies.
+- **Simples para o cliente mobile** — basta trocar o prefixo da URL base; sem manipular headers.
+- **Cacheável** — URLs distintas por versão funcionam bem com caches HTTP/CDN.
+
+Como evoluo na prática:
+
+1. Mudanças **retrocompatíveis** (adicionar campos opcionais, novos endpoints) **não** sobem a
+   versão — clientes antigos continuam funcionando.
+2. Mudanças **quebra-contrato** (remover/renomear campos, alterar semântica) entram em uma nova
+   versão `/api/v2`, mantendo `/api/v1` por um período de depreciação anunciado.
+3. Controllers organizados por versão; código comum (services/domínio) é reaproveitado entre versões.
+
+Alternativas consideradas: *header/media-type versioning* (`Accept: application/vnd.votacao.v1+json`)
+— mais "purista" em REST, porém menos transparente para o cliente mobile e mais difícil de testar
+manualmente; e *query param* (`?version=1`) — frágil para cache. Para o foco deste desafio
+(comunicação simples e clara com o app mobile), **URI versioning** é o melhor custo-benefício.
+
+## Tratamento de erros
+
+Respostas de erro padronizadas via `@RestControllerAdvice`:
+
+| Situação | HTTP |
+|----------|------|
+| Recurso inexistente / CPF inválido | `404 Not Found` |
+| Payload inválido (Bean Validation) | `400 Bad Request` (com `fieldErrors`) |
+| Regra de negócio (sessão fechada, `UNABLE_TO_VOTE`) | `422 Unprocessable Entity` |
+| Associado já votou / sessão já aberta | `409 Conflict` |
+| Erro inesperado | `500 Internal Server Error` |
+
+Exemplo:
+
+```json
 {
-    "status": "UNABLE_TO_VOTE
+  "timestamp": "2026-06-16T16:48:18.59-03:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "CPF invalido: 12345678909",
+  "path": "/api/v1/pautas/1/votos",
+  "fieldErrors": null
 }
 ```
 
-Exemplos de retorno do serviço
+## Logs
 
-### Tarefa Bônus 2 - Performance
-
-- Imagine que sua aplicação possa ser usada em cenários que existam centenas de
-  milhares de votos. Ela deve se comportar de maneira performática nesses
-  cenários
-- Testes de performance são uma boa maneira de garantir e observar como sua
-  aplicação se comporta
-
-### Tarefa Bônus 3 - Versionamento da API
-
-○ Como você versionaria a API da sua aplicação? Que estratégia usar?
-
-## O que será analisado
-
-- Simplicidade no design da solução (evitar over engineering)
-- Organização do código
-- Arquitetura do projeto
-- Boas práticas de programação (manutenibilidade, legibilidade etc)
-- Possíveis bugs
-- Tratamento de erros e exceções
-- Explicação breve do porquê das escolhas tomadas durante o desenvolvimento da solução
-- Uso de testes automatizados e ferramentas de qualidade
-- Limpeza do código
-- Documentação do código e da API
-- Logs da aplicação
-- Mensagens e organização dos commits
-
-## Dicas
-
-- Teste bem sua solução, evite bugs
-- Deixe o domínio das URLs de callback passiveis de alteração via configuração, para facilitar
-  o teste tanto no emulador, quanto em dispositivos fisicos.
-  Observações importantes
-- Não inicie o teste sem sanar todas as dúvidas
-- Iremos executar a aplicação para testá-la, cuide com qualquer dependência externa e
-  deixe claro caso haja instruções especiais para execução do mesmo
-  Classificação da informação: Uso Interno
-
-## Anexo 1
-
-### Introdução
-
-A seguir serão detalhados os tipos de tela que o cliente mobile suporta, assim como os tipos de campos disponíveis para a interação do usuário.
-
-### Tipo de tela – FORMULARIO
-
-A tela do tipo FORMULARIO exibe uma coleção de campos (itens) e possui um ou dois botões de ação na parte inferior.
-
-O aplicativo envia uma requisição POST para a url informada e com o body definido pelo objeto dentro de cada botão quando o mesmo é acionado. Nos casos onde temos campos de entrada
-de dados na tela, os valores informados pelo usuário são adicionados ao corpo da requisição. Abaixo o exemplo da requisição que o aplicativo vai fazer quando o botão “Ação 1” for acionado:
-
-```
-POST http://seudominio.com/ACAO1
-{
-    “campo1”: “valor1”,
-    “campo2”: 123,
-    “idCampoTexto”: “Texto”,
-    “idCampoNumerico: 999
-    “idCampoData”: “01/01/2000”
-}
-```
-
-Obs: o formato da url acima é meramente ilustrativo e não define qualquer padrão de formato.
-
-### Tipo de tela – SELECAO
-
-A tela do tipo SELECAO exibe uma lista de opções para que o usuário.
-
-O aplicativo envia uma requisição POST para a url informada e com o body definido pelo objeto dentro de cada item da lista de seleção, quando o mesmo é acionado, semelhando ao funcionamento dos botões da tela FORMULARIO.
-
-# desafio-votacao
+A aplicação registra os eventos relevantes (criação de pauta, abertura de sessão, registro de voto,
+validação de CPF com o número mascarado, conflitos e erros) via SLF4J/Logback, facilitando a
+observação do comportamento durante os testes.
