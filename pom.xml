@@ -58,6 +58,11 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
+        <!-- Suporte do Flyway ao PostgreSQL (profile "postgres") -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
 
         <!-- Documentacao OpenAPI / Swagger UI -->
         <dependency>
