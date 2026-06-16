@@ -60,7 +60,17 @@ quanto no banco (constraints).
 
 ## Como executar
 
-**Pré-requisitos:** Java 17+ e Maven 3.9+ (ou use o `mvnw` se preferir).
+**Pré-requisitos:** Java 17+ e Maven 3.9+ (ou use o `mvnw`/`mvnw.cmd` incluído, sem instalar Maven).
+Para a Opção 2, também Docker + Docker Compose.
+
+A aplicação pode rodar com **H2** (default, zero dependência externa) ou **PostgreSQL** (via Docker).
+Escolha conforme o cenário:
+
+| | H2 em arquivo (default) | PostgreSQL (profile `postgres`) |
+|---|---|---|
+| Dependência externa | Nenhuma | Docker |
+| Persistência | Arquivo em `./data` | Volume Docker |
+| Indicado para | Avaliar/rodar rápido | Produção e testes de performance |
 
 ### Opção 1 — H2 em arquivo (default, recomendado para avaliar)
 
@@ -79,15 +89,34 @@ java -jar target/votacao-1.0.0.jar
 
 A aplicação sobe em `http://localhost:8080`.
 
-### Opção 2 — PostgreSQL (cenário de produção/performance)
+### Opção 2 — PostgreSQL (via Docker Compose)
+
+O arquivo [`docker-compose.yml`](docker-compose.yml) sobe um PostgreSQL 16 já configurado
+(database/usuário/senha `votacao`) com volume persistente e healthcheck.
 
 ```bash
+# 1. Subir o banco
 docker compose up -d
+
+# 2. Rodar a aplicação no profile postgres
 mvn spring-boot:run -Dspring-boot.run.profiles=postgres
+#   ou: java -jar target/votacao-1.0.0.jar --spring.profiles.active=postgres
+
+# 3. Ao terminar, parar o banco (use -v para também apagar os dados)
+docker compose down
 ```
 
-As credenciais/URL podem ser sobrescritas por variáveis de ambiente
-(`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_POOL_SIZE`).
+As credenciais/URL têm valores default e podem ser sobrescritas por variáveis de ambiente:
+
+| Variável | Default |
+|----------|---------|
+| `DB_URL` | `jdbc:postgresql://localhost:5432/votacao` |
+| `DB_USERNAME` | `votacao` |
+| `DB_PASSWORD` | `votacao` |
+| `DB_POOL_SIZE` | `20` |
+
+> O mesmo schema (Flyway, SQL padrão) é aplicado automaticamente em ambos os bancos, então não há
+> passo manual de criação de tabelas em nenhuma das opções.
 
 ### Configurações relevantes (`application.yml`)
 
@@ -228,11 +257,6 @@ Como evoluo na prática:
 2. Mudanças **quebra-contrato** (remover/renomear campos, alterar semântica) entram em uma nova
    versão `/api/v2`, mantendo `/api/v1` por um período de depreciação anunciado.
 3. Controllers organizados por versão; código comum (services/domínio) é reaproveitado entre versões.
-
-Alternativas consideradas: *header/media-type versioning* (`Accept: application/vnd.votacao.v1+json`)
-— mais "purista" em REST, porém menos transparente para o cliente mobile e mais difícil de testar
-manualmente; e *query param* (`?version=1`) — frágil para cache. Para o foco deste desafio
-(comunicação simples e clara com o app mobile), **URI versioning** é o melhor custo-benefício.
 
 ## Tratamento de erros
 
