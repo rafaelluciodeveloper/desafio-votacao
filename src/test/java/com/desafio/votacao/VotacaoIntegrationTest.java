@@ -96,6 +96,18 @@ class VotacaoIntegrationTest {
     }
 
     @Test
+    void deveRetornar422QuandoAssociadoNaoApto() throws Exception {
+        when(cpfValidationClient.validar(anyString()))
+                .thenReturn(new CpfValidationResult(StatusVoto.UNABLE_TO_VOTE));
+        long pautaId = criarPautaComSessao();
+
+        mvc.perform(post("/api/v1/pautas/" + pautaId + "/votos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"associadoId\":\"77777777777\",\"opcao\":\"SIM\"}"))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
     void deveRejeitarVotoEmSessaoInexistente() throws Exception {
         long pautaId = criarPauta("Sem sessao");
 

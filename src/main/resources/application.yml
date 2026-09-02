@@ -29,6 +29,12 @@ spring:
       enabled: true
       path: /h2-console
 
+  # Timeouts das chamadas HTTP de saida (integracao externa de CPF)
+  http:
+    client:
+      connect-timeout: 2s
+      read-timeout: 5s
+
 server:
   port: 8080
 
@@ -37,9 +43,10 @@ votacao:
   sessao:
     duracao-padrao-minutos: 1
   cpf-client:
-    # URL de callback do servico externo de validacao de CPF.
-    # Deixada parametrizavel para facilitar troca entre emulador / dispositivo / mock.
-    base-url: http://localhost:8080/fake-cpf-service
+    # fake = client local aleatorio (default, sem rede). http = chama {base-url}/users/{cpf}.
+    modo: ${CPF_CLIENT_MODO:fake}
+    # Dominio do servico externo, parametrizavel para emulador / dispositivo / mock.
+    base-url: ${CPF_CLIENT_BASE_URL:https://user-info.herokuapp.com}
 
 # Exposicao de metricas para observabilidade / testes de performance
 management:

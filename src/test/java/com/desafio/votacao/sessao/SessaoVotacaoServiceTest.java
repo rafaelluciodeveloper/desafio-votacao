@@ -33,7 +33,7 @@ class SessaoVotacaoServiceTest {
     void setup() {
         VotacaoProperties props = new VotacaoProperties(
                 new VotacaoProperties.Sessao(1),
-                new VotacaoProperties.CpfClient("http://localhost"));
+                new VotacaoProperties.CpfClient(VotacaoProperties.CpfClient.Modo.FAKE, "http://localhost"));
         service = new SessaoVotacaoService(repository, pautaService, props);
         when(pautaService.buscarPorId(1L)).thenReturn(new Pauta("p", "d"));
     }
