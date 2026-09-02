@@ -12,44 +12,29 @@ import com.desafio.votacao.cpf.CpfInvalidoException;
 import com.desafio.votacao.cpf.CpfValidationClient;
 import com.desafio.votacao.cpf.CpfValidationResult;
 import com.desafio.votacao.cpf.StatusVoto;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 class VotacaoIntegrationTest {
 
     @Autowired
-    private WebApplicationContext context;
+    private MockMvc mvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockBean
+    @MockitoBean
     private CpfValidationClient cpfValidationClient;
-
-    private MockMvc mockMvc() {
-        return MockMvcBuilders.webAppContextSetup(context).build();
-    }
 
     @Test
     void fluxoCompletoDeVotacao() throws Exception {
-        MockMvc mvc = mockMvc();
-        when(cpfValidationClient.validar(anyString()))
-                .thenReturn(new CpfValidationResult(StatusVoto.ABLE_TO_VOTE));
-
-        String pautaJson = mvc.perform(post("/api/v1/pautas")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"titulo\":\"Pauta integracao\",\"descricao\":\"desc\"}"))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        long pautaId = objectMapper.readTree(pautaJson).get("id").asLong();
+        aptoAVotar();
+        long pautaId = criarPauta("Pauta integracao");
 
         mvc.perform(post("/api/v1/pautas/" + pautaId + "/sessao")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -57,9 +42,9 @@ class VotacaoIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status", is("ABERTA")));
 
-        votar(mvc, pautaId, "11111111111", "SIM");
-        votar(mvc, pautaId, "22222222222", "SIM");
-        votar(mvc, pautaId, "33333333333", "NAO");
+        votar(pautaId, "11111111111", "SIM");
+        votar(pautaId, "22222222222", "SIM");
+        votar(pautaId, "33333333333", "NAO");
 
         mvc.perform(get("/api/v1/pautas/" + pautaId + "/resultado"))
                 .andExpect(status().isOk())
@@ -70,13 +55,27 @@ class VotacaoIntegrationTest {
     }
 
     @Test
-    void naoDevePermitirVotoDuplicado() throws Exception {
-        MockMvc mvc = mockMvc();
-        when(cpfValidationClient.validar(anyString()))
-                .thenReturn(new CpfValidationResult(StatusVoto.ABLE_TO_VOTE));
+    void deveUsarUmMinutoQuandoSessaoAbreSemCorpo() throws Exception {
+        long pautaId = criarPauta("Sessao default");
 
-        long pautaId = criarPautaComSessao(mvc);
-        votar(mvc, pautaId, "44444444444", "SIM");
+        String json = mvc.perform(post("/api/v1/pautas/" + pautaId + "/sessao"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status", is("ABERTA")))
+                .andReturn().getResponse().getContentAsString();
+
+        String abertura = JsonPath.read(json, "$.dataAbertura");
+        String encerramento = JsonPath.read(json, "$.dataEncerramento");
+        org.assertj.core.api.Assertions.assertThat(
+                        java.time.Duration.between(java.time.LocalDateTime.parse(abertura),
+                                java.time.LocalDateTime.parse(encerramento)).toMinutes())
+                .isEqualTo(1);
+    }
+
+    @Test
+    void naoDevePermitirVotoDuplicado() throws Exception {
+        aptoAVotar();
+        long pautaId = criarPautaComSessao();
+        votar(pautaId, "44444444444", "SIM");
 
         mvc.perform(post("/api/v1/pautas/" + pautaId + "/votos")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -86,11 +85,9 @@ class VotacaoIntegrationTest {
 
     @Test
     void deveRetornar404QuandoCpfInvalido() throws Exception {
-        MockMvc mvc = mockMvc();
         when(cpfValidationClient.validar(anyString()))
                 .thenThrow(new CpfInvalidoException("55555555555"));
-
-        long pautaId = criarPautaComSessao(mvc);
+        long pautaId = criarPautaComSessao();
 
         mvc.perform(post("/api/v1/pautas/" + pautaId + "/votos")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -100,13 +97,7 @@ class VotacaoIntegrationTest {
 
     @Test
     void deveRejeitarVotoEmSessaoInexistente() throws Exception {
-        MockMvc mvc = mockMvc();
-        String pautaJson = mvc.perform(post("/api/v1/pautas")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"titulo\":\"Sem sessao\"}"))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        long pautaId = objectMapper.readTree(pautaJson).get("id").asLong();
+        long pautaId = criarPauta("Sem sessao");
 
         mvc.perform(post("/api/v1/pautas/" + pautaId + "/votos")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -116,21 +107,30 @@ class VotacaoIntegrationTest {
 
     @Test
     void deveValidarPayloadInvalido() throws Exception {
-        MockMvc mvc = mockMvc();
         mvc.perform(post("/api/v1/pautas")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"descricao\":\"sem titulo\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status", is(400)));
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.fieldErrors[0].field", is("titulo")));
     }
 
-    private long criarPautaComSessao(MockMvc mvc) throws Exception {
-        String pautaJson = mvc.perform(post("/api/v1/pautas")
+    private void aptoAVotar() {
+        when(cpfValidationClient.validar(anyString()))
+                .thenReturn(new CpfValidationResult(StatusVoto.ABLE_TO_VOTE));
+    }
+
+    private long criarPauta(String titulo) throws Exception {
+        String json = mvc.perform(post("/api/v1/pautas")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"titulo\":\"Pauta\",\"descricao\":\"d\"}"))
+                        .content("{\"titulo\":\"" + titulo + "\",\"descricao\":\"desc\"}"))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        long pautaId = objectMapper.readTree(pautaJson).get("id").asLong();
+        return ((Number) JsonPath.read(json, "$.id")).longValue();
+    }
+
+    private long criarPautaComSessao() throws Exception {
+        long pautaId = criarPauta("Pauta");
         mvc.perform(post("/api/v1/pautas/" + pautaId + "/sessao")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"duracaoMinutos\":5}"))
@@ -138,7 +138,7 @@ class VotacaoIntegrationTest {
         return pautaId;
     }
 
-    private void votar(MockMvc mvc, long pautaId, String cpf, String opcao) throws Exception {
+    private void votar(long pautaId, String cpf, String opcao) throws Exception {
         mvc.perform(post("/api/v1/pautas/" + pautaId + "/votos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"associadoId\":\"" + cpf + "\",\"opcao\":\"" + opcao + "\"}"))
