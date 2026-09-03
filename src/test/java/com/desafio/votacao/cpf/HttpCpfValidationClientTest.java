@@ -31,7 +31,8 @@ class HttpCpfValidationClientTest {
         server = MockRestServiceServer.bindTo(builder).build();
         VotacaoProperties properties = new VotacaoProperties(
                 new VotacaoProperties.Sessao(1),
-                new VotacaoProperties.CpfClient(VotacaoProperties.CpfClient.Modo.HTTP, BASE_URL));
+                new VotacaoProperties.CpfClient(VotacaoProperties.CpfClient.Modo.HTTP, BASE_URL),
+                new VotacaoProperties.Ui(""));
         client = new HttpCpfValidationClient(builder, properties);
     }
 

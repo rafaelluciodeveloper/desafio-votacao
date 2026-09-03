@@ -11,7 +11,7 @@ import org.springframework.validation.annotation.Validated;
  */
 @Validated
 @ConfigurationProperties(prefix = "votacao")
-public record VotacaoProperties(@NotNull Sessao sessao, @NotNull CpfClient cpfClient) {
+public record VotacaoProperties(@NotNull Sessao sessao, @NotNull CpfClient cpfClient, @NotNull Ui ui) {
 
     public record Sessao(@Positive int duracaoPadraoMinutos) {
     }
@@ -29,5 +29,12 @@ public record VotacaoProperties(@NotNull Sessao sessao, @NotNull CpfClient cpfCl
             /** Chamada HTTP real a {baseUrl}/users/{cpf}. */
             HTTP
         }
+    }
+
+    /**
+     * @param baseUrl dominio usado ao montar as URLs de callback das telas do app mobile.
+     *                Vazio = deriva da propria requisicao (util em emulador/dispositivo fisico).
+     */
+    public record Ui(@NotNull String baseUrl) {
     }
 }

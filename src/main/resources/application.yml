@@ -29,6 +29,10 @@ spring:
       enabled: true
       path: /h2-console
 
+  # Payloads mais enxutos para o app mobile: campos nulos nao sao serializados
+  jackson:
+    default-property-inclusion: non_null
+
   # Timeouts das chamadas HTTP de saida (integracao externa de CPF)
   http:
     client:
@@ -47,6 +51,10 @@ votacao:
     modo: ${CPF_CLIENT_MODO:fake}
     # Dominio do servico externo, parametrizavel para emulador / dispositivo / mock.
     base-url: ${CPF_CLIENT_BASE_URL:https://user-info.herokuapp.com}
+  ui:
+    # Dominio usado nas URLs de callback das telas do app mobile.
+    # Vazio = deriva da propria requisicao (funciona em emulador e dispositivo fisico).
+    base-url: ${UI_BASE_URL:}
 
 # Exposicao de metricas para observabilidade / testes de performance
 management:

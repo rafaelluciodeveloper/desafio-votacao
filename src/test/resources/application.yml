@@ -16,7 +16,8 @@ votacao:
   cpf-client:
     modo: fake
     base-url: http://localhost:8080/fake-cpf-service
-
+  ui:
+    base-url: 
 
 logging:
   level:

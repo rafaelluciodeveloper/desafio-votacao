@@ -7,6 +7,7 @@ import com.desafio.votacao.pauta.Pauta;
 import com.desafio.votacao.pauta.PautaService;
 import com.desafio.votacao.sessao.dto.AbrirSessaoRequest;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -53,8 +54,17 @@ public class SessaoVotacaoService {
 
     @Transactional(readOnly = true)
     public SessaoVotacao buscarPorPauta(Long pautaId) {
-        return repository.findByPautaId(pautaId)
+        return encontrarPorPauta(pautaId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Nenhuma sessao de votacao encontrada para a pauta id=" + pautaId));
+    }
+
+    /**
+     * Variante sem excecao, para fluxos que precisam decidir com base na ausencia de sessao
+     * (ex.: montagem das telas do app mobile).
+     */
+    @Transactional(readOnly = true)
+    public Optional<SessaoVotacao> encontrarPorPauta(Long pautaId) {
+        return repository.findByPautaId(pautaId);
     }
 }
