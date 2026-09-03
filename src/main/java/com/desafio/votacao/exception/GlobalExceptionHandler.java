@@ -7,9 +7,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Traducao centralizada de excecoes para respostas HTTP padronizadas.
@@ -49,6 +53,34 @@ public class GlobalExceptionHandler {
                 .map(fe -> new ApiError.FieldErrorDetail(fe.getField(), fe.getDefaultMessage()))
                 .toList();
         return build(HttpStatus.BAD_REQUEST, "Erro de validacao", req, fieldErrors);
+    }
+
+    /**
+     * JSON mal formado ou valor de enum invalido (ex.: opcao "TALVEZ") -> 400, nao 500.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex, HttpServletRequest req) {
+        log.warn("Corpo da requisicao invalido: {}", ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST, "Corpo da requisicao ausente, mal formado ou com valor invalido", req, null);
+    }
+
+    /**
+     * Path variable/param com tipo incompativel (ex.: /pautas/abc) -> 400, nao 500.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "Valor invalido para o parametro '" + ex.getName() + "'", req, null);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex, HttpServletRequest req) {
+        return build(HttpStatus.NOT_FOUND, "Recurso nao encontrado", req, null);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
+                                                            HttpServletRequest req) {
+        return build(HttpStatus.METHOD_NOT_ALLOWED, "Metodo HTTP nao suportado para este recurso", req, null);
     }
 
     @ExceptionHandler(Exception.class)

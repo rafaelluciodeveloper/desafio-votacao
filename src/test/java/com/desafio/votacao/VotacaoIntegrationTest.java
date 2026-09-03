@@ -127,6 +127,28 @@ class VotacaoIntegrationTest {
                 .andExpect(jsonPath("$.fieldErrors[0].field", is("titulo")));
     }
 
+    @Test
+    void deveResponder400ParaOpcaoDeVotoInexistente() throws Exception {
+        long pautaId = criarPautaComSessao();
+
+        mvc.perform(post("/api/v1/pautas/" + pautaId + "/votos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"associadoId\":\"88888888888\",\"opcao\":\"TALVEZ\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deveResponder400ParaIdNaoNumerico() throws Exception {
+        mvc.perform(get("/api/v1/pautas/abc"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deveResponder404ParaRotaInexistente() throws Exception {
+        mvc.perform(get("/api/v1/inexistente"))
+                .andExpect(status().isNotFound());
+    }
+
     private void aptoAVotar() {
         when(cpfValidationClient.validar(anyString()))
                 .thenReturn(new CpfValidationResult(StatusVoto.ABLE_TO_VOTE));
