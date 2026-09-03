@@ -40,7 +40,7 @@ class SessaoVotacaoServiceTest {
 
     @Test
     void deveUsarDuracaoPadraoDeUmMinutoQuandoNaoInformada() {
-        when(repository.findFirstByPautaIdOrderByDataAberturaDesc(1L)).thenReturn(Optional.empty());
+        when(repository.findByPautaId(1L)).thenReturn(Optional.empty());
         when(repository.save(any(SessaoVotacao.class))).thenAnswer(inv -> inv.getArgument(0));
 
         SessaoVotacao sessao = service.abrir(1L, null);
@@ -51,7 +51,7 @@ class SessaoVotacaoServiceTest {
 
     @Test
     void deveUsarDuracaoInformada() {
-        when(repository.findFirstByPautaIdOrderByDataAberturaDesc(1L)).thenReturn(Optional.empty());
+        when(repository.findByPautaId(1L)).thenReturn(Optional.empty());
         when(repository.save(any(SessaoVotacao.class))).thenAnswer(inv -> inv.getArgument(0));
 
         SessaoVotacao sessao = service.abrir(1L, new AbrirSessaoRequest(15));
@@ -65,8 +65,20 @@ class SessaoVotacaoServiceTest {
         LocalDateTime agora = LocalDateTime.now();
         SessaoVotacao aberta = new SessaoVotacao(new Pauta("p", "d"),
                 agora.minusMinutes(1), agora.plusMinutes(5));
-        when(repository.findFirstByPautaIdOrderByDataAberturaDesc(1L)).thenReturn(Optional.of(aberta));
+        when(repository.findByPautaId(1L)).thenReturn(Optional.of(aberta));
 
+        assertThatThrownBy(() -> service.abrir(1L, null))
+                .isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void deveImpedirReaberturaDeSessaoJaEncerrada() {
+        LocalDateTime agora = LocalDateTime.now();
+        SessaoVotacao encerrada = new SessaoVotacao(new Pauta("p", "d"),
+                agora.minusMinutes(10), agora.minusMinutes(5));
+        when(repository.findByPautaId(1L)).thenReturn(Optional.of(encerrada));
+
+        // Reabrir descartaria a apuracao e permitiria voto em dobro na mesma pauta.
         assertThatThrownBy(() -> service.abrir(1L, null))
                 .isInstanceOf(ConflictException.class);
     }

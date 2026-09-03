@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SessaoVotacaoRepository extends JpaRepository<SessaoVotacao, Long> {
 
     /**
-     * Recupera a sessao mais recente de uma pauta (uma sessao ativa por vez).
+     * Cada pauta possui no maximo uma sessao de votacao (unicidade garantida no banco).
      */
-    Optional<SessaoVotacao> findFirstByPautaIdOrderByDataAberturaDesc(Long pautaId);
+    Optional<SessaoVotacao> findByPautaId(Long pautaId);
 }

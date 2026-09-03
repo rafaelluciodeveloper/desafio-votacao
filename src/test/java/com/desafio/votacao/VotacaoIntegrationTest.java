@@ -118,6 +118,16 @@ class VotacaoIntegrationTest {
     }
 
     @Test
+    void naoDevePermitirAbrirDuasSessoesNaMesmaPauta() throws Exception {
+        long pautaId = criarPautaComSessao();
+
+        mvc.perform(post("/api/v1/pautas/" + pautaId + "/sessao")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"duracaoMinutos\":5}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void deveValidarPayloadInvalido() throws Exception {
         mvc.perform(post("/api/v1/pautas")
                         .contentType(MediaType.APPLICATION_JSON)

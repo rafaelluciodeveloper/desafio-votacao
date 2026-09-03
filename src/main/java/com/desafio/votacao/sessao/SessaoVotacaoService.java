@@ -33,10 +33,10 @@ public class SessaoVotacaoService {
     public SessaoVotacao abrir(Long pautaId, AbrirSessaoRequest request) {
         Pauta pauta = pautaService.buscarPorId(pautaId);
 
-        repository.findFirstByPautaIdOrderByDataAberturaDesc(pautaId).ifPresent(existente -> {
-            if (existente.estaAberta(LocalDateTime.now())) {
-                throw new ConflictException("Ja existe uma sessao de votacao aberta para a pauta id=" + pautaId);
-            }
+        // Uma pauta e deliberada uma unica vez: reabrir a sessao permitiria que o mesmo
+        // associado votasse novamente e descartaria a apuracao anterior.
+        repository.findByPautaId(pautaId).ifPresent(existente -> {
+            throw new ConflictException("A pauta id=" + pautaId + " ja possui uma sessao de votacao");
         });
 
         int duracao = (request != null && request.duracaoMinutos() != null)
@@ -53,7 +53,7 @@ public class SessaoVotacaoService {
 
     @Transactional(readOnly = true)
     public SessaoVotacao buscarPorPauta(Long pautaId) {
-        return repository.findFirstByPautaIdOrderByDataAberturaDesc(pautaId)
+        return repository.findByPautaId(pautaId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Nenhuma sessao de votacao encontrada para a pauta id=" + pautaId));
     }

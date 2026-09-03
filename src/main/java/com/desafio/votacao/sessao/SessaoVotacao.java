@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -20,7 +21,8 @@ import lombok.Setter;
  * Sessao de votacao aberta sobre uma pauta, com janela temporal definida.
  */
 @Entity
-@Table(name = "sessao_votacao")
+@Table(name = "sessao_votacao", uniqueConstraints =
+        @UniqueConstraint(name = "uk_sessao_pauta", columnNames = "pauta_id"))
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
