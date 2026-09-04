@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +20,7 @@ import com.desafio.votacao.sessao.SessaoVotacaoService;
 import com.desafio.votacao.voto.dto.ResultadoResponse;
 import com.desafio.votacao.voto.dto.VotoRequest;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -129,8 +129,8 @@ class VotoServiceTest {
     @Test
     void deveApurarComoAprovadaQuandoSimMaiorQueNao() {
         when(sessaoService.buscarPorPauta(1L)).thenReturn(sessaoAberta);
-        when(votoRepository.countBySessaoIdAndOpcao(any(), eq(OpcaoVoto.SIM))).thenReturn(7L);
-        when(votoRepository.countBySessaoIdAndOpcao(any(), eq(OpcaoVoto.NAO))).thenReturn(3L);
+        when(votoRepository.contarPorOpcao(any())).thenReturn(List.of(
+                new ContagemVoto(OpcaoVoto.SIM, 7L), new ContagemVoto(OpcaoVoto.NAO, 3L)));
 
         ResultadoResponse r = votoService.apurar(1L);
 
@@ -140,10 +140,21 @@ class VotoServiceTest {
     }
 
     @Test
+    void deveApurarZerosQuandoNaoHaVotos() {
+        when(sessaoService.buscarPorPauta(1L)).thenReturn(sessaoAberta);
+        when(votoRepository.contarPorOpcao(any())).thenReturn(List.of());
+
+        ResultadoResponse r = votoService.apurar(1L);
+
+        assertThat(r.totalVotos()).isZero();
+        assertThat(r.resultado()).isEqualTo(ResultadoVotacao.EMPATE);
+    }
+
+    @Test
     void deveApurarComoEmpate() {
         when(sessaoService.buscarPorPauta(1L)).thenReturn(sessaoAberta);
-        when(votoRepository.countBySessaoIdAndOpcao(any(), eq(OpcaoVoto.SIM))).thenReturn(5L);
-        when(votoRepository.countBySessaoIdAndOpcao(any(), eq(OpcaoVoto.NAO))).thenReturn(5L);
+        when(votoRepository.contarPorOpcao(any())).thenReturn(List.of(
+                new ContagemVoto(OpcaoVoto.SIM, 5L), new ContagemVoto(OpcaoVoto.NAO, 5L)));
 
         assertThat(votoService.apurar(1L).resultado()).isEqualTo(ResultadoVotacao.EMPATE);
     }

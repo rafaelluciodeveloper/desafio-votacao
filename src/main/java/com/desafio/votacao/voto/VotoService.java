@@ -9,6 +9,8 @@ import com.desafio.votacao.sessao.SessaoVotacaoService;
 import com.desafio.votacao.voto.dto.ResultadoResponse;
 import com.desafio.votacao.voto.dto.VotoRequest;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -66,8 +68,10 @@ public class VotoService {
     public ResultadoResponse apurar(Long pautaId) {
         SessaoVotacao sessao = sessaoService.buscarPorPauta(pautaId);
 
-        long votosSim = votoRepository.countBySessaoIdAndOpcao(sessao.getId(), OpcaoVoto.SIM);
-        long votosNao = votoRepository.countBySessaoIdAndOpcao(sessao.getId(), OpcaoVoto.NAO);
+        Map<OpcaoVoto, Long> contagem = votoRepository.contarPorOpcao(sessao.getId()).stream()
+                .collect(Collectors.toMap(ContagemVoto::opcao, ContagemVoto::total));
+        long votosSim = contagem.getOrDefault(OpcaoVoto.SIM, 0L);
+        long votosNao = contagem.getOrDefault(OpcaoVoto.NAO, 0L);
 
         ResultadoVotacao resultado;
         if (votosSim > votosNao) {

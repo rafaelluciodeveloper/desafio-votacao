@@ -9,7 +9,8 @@ services:
       POSTGRES_USER: votacao
       POSTGRES_PASSWORD: votacao
     ports:
-      - "5432:5432"
+      # Porta do host configuravel: POSTGRES_PORT=5433 docker compose up -d
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - votacao-pgdata:/var/lib/postgresql/data
     healthcheck:
