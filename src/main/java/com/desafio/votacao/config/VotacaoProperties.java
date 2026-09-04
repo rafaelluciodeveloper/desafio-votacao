@@ -19,7 +19,7 @@ public record VotacaoProperties(@NotNull Sessao sessao, @NotNull CpfClient cpfCl
     /**
      * Integracao externa de validacao de CPF. O dominio e o modo sao configuraveis
      * para permitir apontar para o servico real, um mock ou o client fake local.
-     * Timeouts ficam em {@code spring.http.client.*}.
+     * Timeouts ficam em {@code spring.http.clients.*}.
      */
     public record CpfClient(@NotNull Modo modo, @NotNull String baseUrl) {
 

@@ -17,7 +17,7 @@ import org.springframework.web.client.RestClientException;
  * Client HTTP real do servico externo de validacao de CPF (Tarefa Bonus 1):
  * {@code GET {baseUrl}/users/{cpf}} respondendo {@code {"status":"ABLE_TO_VOTE"}} ou 404.
  * <p>Ativado com {@code votacao.cpf-client.modo=http}. O dominio e configuravel
- * ({@code votacao.cpf-client.base-url}) e os timeouts vem de {@code spring.http.client.*},
+ * ({@code votacao.cpf-client.base-url}) e os timeouts vem de {@code spring.http.clients.*},
  * permitindo apontar para o servico real ou para um mock em emulador/dispositivo.
  */
 @Component

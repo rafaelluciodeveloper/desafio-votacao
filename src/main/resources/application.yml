@@ -33,9 +33,10 @@ spring:
   jackson:
     default-property-inclusion: non_null
 
-  # Timeouts das chamadas HTTP de saida (integracao externa de CPF)
+  # Timeouts das chamadas HTTP de saida (integracao externa de CPF).
+  # "clients" no plural: "spring.http.client.*" foi depreciado no Spring Boot 4.
   http:
-    client:
+    clients:
       connect-timeout: 2s
       read-timeout: 5s
 
