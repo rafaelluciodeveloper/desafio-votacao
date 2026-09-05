@@ -46,10 +46,10 @@ public class Voto {
     @Column(name = "data_voto", nullable = false)
     private LocalDateTime dataVoto;
 
-    public Voto(SessaoVotacao sessao, String associadoId, OpcaoVoto opcao) {
+    public Voto(SessaoVotacao sessao, String associadoId, OpcaoVoto opcao, LocalDateTime dataVoto) {
         this.sessao = sessao;
         this.associadoId = associadoId;
         this.opcao = opcao;
-        this.dataVoto = LocalDateTime.now();
+        this.dataVoto = dataVoto;
     }
 }

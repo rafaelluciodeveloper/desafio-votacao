@@ -5,9 +5,10 @@ import com.desafio.votacao.sessao.dto.SessaoResponse;
 import com.desafio.votacao.config.OpenApiConfig.Erros;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,34 +24,32 @@ import org.springframework.web.bind.annotation.RestController;
 public class SessaoVotacaoController {
 
     private final SessaoVotacaoService service;
+    private final Clock clock;
 
-    public SessaoVotacaoController(SessaoVotacaoService service) {
+    public SessaoVotacaoController(SessaoVotacaoService service, Clock clock) {
         this.service = service;
+        this.clock = clock;
     }
 
     @Operation(summary = "Abrir uma sessao de votacao em uma pauta",
             description = "Duracao opcional em minutos no corpo; default 1 minuto. "
                     + "Cada pauta admite uma unica sessao.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Sessao aberta"),
-            @ApiResponse(responseCode = "400", description = Erros.VALIDACAO),
-            @ApiResponse(responseCode = "404", description = Erros.NAO_ENCONTRADO),
-            @ApiResponse(responseCode = "409", description = "A pauta ja possui uma sessao de votacao")
-    })
+    @ApiResponse(responseCode = "201", description = "Sessao aberta")
+    @ApiResponse(responseCode = "400", description = Erros.VALIDACAO)
+    @ApiResponse(responseCode = "404", description = Erros.NAO_ENCONTRADO)
+    @ApiResponse(responseCode = "409", description = "A pauta ja possui uma sessao de votacao")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public SessaoResponse abrir(@PathVariable Long pautaId,
                                 @Valid @RequestBody(required = false) AbrirSessaoRequest request) {
-        return SessaoResponse.from(service.abrir(pautaId, request));
+        return SessaoResponse.from(service.abrir(pautaId, request), LocalDateTime.now(clock));
     }
 
     @Operation(summary = "Consultar a sessao de votacao de uma pauta")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Sessao encontrada"),
-            @ApiResponse(responseCode = "404", description = "A pauta nao possui sessao de votacao")
-    })
+    @ApiResponse(responseCode = "200", description = "Sessao encontrada")
+    @ApiResponse(responseCode = "404", description = "A pauta nao possui sessao de votacao")
     @GetMapping
     public SessaoResponse consultar(@PathVariable Long pautaId) {
-        return SessaoResponse.from(service.buscarPorPauta(pautaId));
+        return SessaoResponse.from(service.buscarPorPauta(pautaId), LocalDateTime.now(clock));
     }
 }

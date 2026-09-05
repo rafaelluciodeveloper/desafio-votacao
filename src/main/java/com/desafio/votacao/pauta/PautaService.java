@@ -2,6 +2,8 @@ package com.desafio.votacao.pauta;
 
 import com.desafio.votacao.exception.ResourceNotFoundException;
 import com.desafio.votacao.pauta.dto.PautaRequest;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,14 +16,17 @@ public class PautaService {
     private static final Logger log = LoggerFactory.getLogger(PautaService.class);
 
     private final PautaRepository repository;
+    private final Clock clock;
 
-    public PautaService(PautaRepository repository) {
+    public PautaService(PautaRepository repository, Clock clock) {
         this.repository = repository;
+        this.clock = clock;
     }
 
     @Transactional
     public Pauta criar(PautaRequest request) {
-        Pauta pauta = repository.save(new Pauta(request.titulo(), request.descricao()));
+        Pauta pauta = repository.save(
+                new Pauta(request.titulo(), request.descricao(), LocalDateTime.now(clock)));
         log.info("Pauta criada id={} titulo='{}'", pauta.getId(), pauta.getTitulo());
         return pauta;
     }

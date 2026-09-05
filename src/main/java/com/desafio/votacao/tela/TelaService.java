@@ -17,6 +17,7 @@ import com.desafio.votacao.voto.OpcaoVoto;
 import com.desafio.votacao.voto.VotoService;
 import com.desafio.votacao.voto.dto.ResultadoResponse;
 import com.desafio.votacao.voto.dto.VotoRequest;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -36,21 +37,20 @@ public class TelaService {
 
     private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
-    static final String PATH_PAUTAS = "/api/v1/ui/pautas";
-    static final String PATH_VOTACAO = "/api/v1/ui/votacao";
-    static final String PATH_VOTOS = "/api/v1/ui/votos";
-    static final String PATH_RESULTADO = "/api/v1/ui/resultado";
+    private static final String CAMPO_PAUTA_ID = "pautaId";
 
     private final PautaService pautaService;
     private final SessaoVotacaoService sessaoService;
     private final VotoService votoService;
+    private final Clock clock;
     private final String baseUrlConfigurada;
 
     public TelaService(PautaService pautaService, SessaoVotacaoService sessaoService,
-                       VotoService votoService, VotacaoProperties properties) {
+                       VotoService votoService, VotacaoProperties properties, Clock clock) {
         this.pautaService = pautaService;
         this.sessaoService = sessaoService;
         this.votoService = votoService;
+        this.clock = clock;
         this.baseUrlConfigurada = properties.ui().baseUrl();
     }
 
@@ -62,8 +62,8 @@ public class TelaService {
                 .map(pauta -> new ItemSelecao(
                         pauta.getTitulo(),
                         pauta.getDescricao(),
-                        url(PATH_VOTACAO),
-                        Map.of("pautaId", pauta.getId())))
+                        url(TelaRotas.URL_VOTACAO),
+                        Map.of(CAMPO_PAUTA_ID, pauta.getId())))
                 .toList();
         return new TelaSelecao("Pautas em deliberacao", itens);
     }
@@ -81,11 +81,11 @@ public class TelaService {
                     List.of(Campo.label("Situacao", "Nenhuma sessao de votacao foi aberta para esta pauta")),
                     List.of(voltar()));
         }
-        if (!sessao.get().estaAberta(LocalDateTime.now())) {
+        if (!sessao.get().estaAberta(LocalDateTime.now(clock))) {
             return resultado(new PautaAcaoRequest(pauta.getId()));
         }
 
-        Map<String, Object> body = Map.of("pautaId", pauta.getId());
+        Map<String, Object> body = Map.of(CAMPO_PAUTA_ID, pauta.getId());
         return new TelaFormulario(
                 pauta.getTitulo(),
                 List.of(
@@ -105,7 +105,7 @@ public class TelaService {
         return new TelaFormulario(
                 "Voto registrado",
                 List.of(Campo.label("Seu voto", request.opcao().name())),
-                List.of(new Botao("Ver resultado", url(PATH_RESULTADO), Map.of("pautaId", request.pautaId())),
+                List.of(new Botao("Ver resultado", url(TelaRotas.URL_RESULTADO), Map.of(CAMPO_PAUTA_ID, request.pautaId())),
                         voltar()));
     }
 
@@ -136,12 +136,12 @@ public class TelaService {
     }
 
     private Botao botaoVoto(String titulo, Map<String, Object> body, OpcaoVoto opcao) {
-        return new Botao(titulo, url(PATH_VOTOS),
-                Map.of("pautaId", body.get("pautaId"), "opcao", opcao.name()));
+        return new Botao(titulo, url(TelaRotas.URL_VOTOS),
+                Map.of(CAMPO_PAUTA_ID, body.get(CAMPO_PAUTA_ID), "opcao", opcao.name()));
     }
 
     private Botao voltar() {
-        return new Botao("Voltar", url(PATH_PAUTAS), Map.of());
+        return new Botao("Voltar", url(TelaRotas.URL_PAUTAS), Map.of());
     }
 
     /**

@@ -8,6 +8,7 @@ import com.desafio.votacao.sessao.SessaoVotacao;
 import com.desafio.votacao.sessao.SessaoVotacaoService;
 import com.desafio.votacao.voto.dto.ResultadoResponse;
 import com.desafio.votacao.voto.dto.VotoRequest;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,20 +26,24 @@ public class VotoService {
     private final VotoRepository votoRepository;
     private final SessaoVotacaoService sessaoService;
     private final CpfValidationClient cpfValidationClient;
+    private final Clock clock;
 
     public VotoService(VotoRepository votoRepository,
                        SessaoVotacaoService sessaoService,
-                       CpfValidationClient cpfValidationClient) {
+                       CpfValidationClient cpfValidationClient,
+                       Clock clock) {
         this.votoRepository = votoRepository;
         this.sessaoService = sessaoService;
         this.cpfValidationClient = cpfValidationClient;
+        this.clock = clock;
     }
 
     @Transactional
     public Voto registrar(Long pautaId, VotoRequest request) {
         SessaoVotacao sessao = sessaoService.buscarPorPauta(pautaId);
 
-        if (!sessao.estaAberta(LocalDateTime.now())) {
+        LocalDateTime agora = LocalDateTime.now(clock);
+        if (!sessao.estaAberta(agora)) {
             throw new BusinessException("A sessao de votacao da pauta id=" + pautaId + " nao esta aberta");
         }
 
@@ -54,7 +59,8 @@ public class VotoService {
         }
 
         try {
-            Voto voto = votoRepository.save(new Voto(sessao, request.associadoId(), request.opcao()));
+            Voto voto = votoRepository.save(
+                    new Voto(sessao, request.associadoId(), request.opcao(), agora));
             log.info("Voto registrado id={} sessaoId={} opcao={}", voto.getId(), sessao.getId(), voto.getOpcao());
             return voto;
         } catch (DataIntegrityViolationException ex) {
@@ -82,7 +88,7 @@ public class VotoService {
             resultado = ResultadoVotacao.EMPATE;
         }
 
-        boolean encerrada = !sessao.estaAberta(LocalDateTime.now());
+        boolean encerrada = !sessao.estaAberta(LocalDateTime.now(clock));
         return new ResultadoResponse(
                 pautaId,
                 sessao.getId(),

@@ -19,12 +19,13 @@ import com.desafio.votacao.sessao.SessaoVotacao;
 import com.desafio.votacao.sessao.SessaoVotacaoService;
 import com.desafio.votacao.voto.dto.ResultadoResponse;
 import com.desafio.votacao.voto.dto.VotoRequest;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -39,7 +40,10 @@ class VotoServiceTest {
     @Mock
     private CpfValidationClient cpfValidationClient;
 
-    @InjectMocks
+    private static final ZoneId ZONA = ZoneId.of("America/Sao_Paulo");
+    private static final LocalDateTime AGORA = LocalDateTime.of(2026, 9, 5, 10, 0);
+    private static final Clock RELOGIO = Clock.fixed(AGORA.atZone(ZONA).toInstant(), ZONA);
+
     private VotoService votoService;
 
     private SessaoVotacao sessaoAberta;
@@ -47,9 +51,9 @@ class VotoServiceTest {
 
     @BeforeEach
     void setup() {
-        Pauta pauta = new Pauta("Pauta teste", "desc");
-        LocalDateTime agora = LocalDateTime.now();
-        sessaoAberta = new SessaoVotacao(pauta, agora.minusMinutes(1), agora.plusMinutes(5));
+        votoService = new VotoService(votoRepository, sessaoService, cpfValidationClient, RELOGIO);
+        Pauta pauta = new Pauta("Pauta teste", "desc", AGORA);
+        sessaoAberta = new SessaoVotacao(pauta, AGORA.minusMinutes(1), AGORA.plusMinutes(5));
     }
 
     @Test
@@ -63,14 +67,14 @@ class VotoServiceTest {
         Voto voto = votoService.registrar(1L, votoSim);
 
         assertThat(voto.getOpcao()).isEqualTo(OpcaoVoto.SIM);
+        assertThat(voto.getDataVoto()).isEqualTo(AGORA);
         verify(votoRepository).save(any(Voto.class));
     }
 
     @Test
     void deveFalharQuandoSessaoEncerrada() {
-        Pauta pauta = new Pauta("p", "d");
-        LocalDateTime agora = LocalDateTime.now();
-        SessaoVotacao encerrada = new SessaoVotacao(pauta, agora.minusMinutes(10), agora.minusMinutes(5));
+        Pauta pauta = new Pauta("p", "d", AGORA);
+        SessaoVotacao encerrada = new SessaoVotacao(pauta, AGORA.minusMinutes(10), AGORA.minusMinutes(5));
         when(sessaoService.buscarPorPauta(1L)).thenReturn(encerrada);
 
         assertThatThrownBy(() -> votoService.registrar(1L, votoSim))

@@ -13,8 +13,8 @@ public record SessaoResponse(
         LocalDateTime dataEncerramento,
         String status
 ) {
-    public static SessaoResponse from(SessaoVotacao sessao) {
-        String status = sessao.estaAberta(LocalDateTime.now()) ? "ABERTA" : "ENCERRADA";
+    public static SessaoResponse from(SessaoVotacao sessao, LocalDateTime agora) {
+        String status = sessao.estaAberta(agora) ? "ABERTA" : "ENCERRADA";
         return new SessaoResponse(
                 sessao.getId(),
                 sessao.getPauta().getId(),

@@ -6,7 +6,6 @@ import com.desafio.votacao.voto.dto.VotoResponse;
 import com.desafio.votacao.config.OpenApiConfig.Erros;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -30,14 +29,12 @@ public class VotoController {
     }
 
     @Operation(summary = "Registrar voto de um associado na pauta")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Voto registrado"),
-            @ApiResponse(responseCode = "400", description = Erros.VALIDACAO),
-            @ApiResponse(responseCode = "404", description = "Sessao inexistente ou CPF invalido"),
-            @ApiResponse(responseCode = "409", description = "Associado ja votou nesta pauta"),
-            @ApiResponse(responseCode = "422", description = "Sessao encerrada ou associado UNABLE_TO_VOTE"),
-            @ApiResponse(responseCode = "503", description = Erros.EXTERNO)
-    })
+    @ApiResponse(responseCode = "201", description = "Voto registrado")
+    @ApiResponse(responseCode = "400", description = Erros.VALIDACAO)
+    @ApiResponse(responseCode = "404", description = "Sessao inexistente ou CPF invalido")
+    @ApiResponse(responseCode = "409", description = "Associado ja votou nesta pauta")
+    @ApiResponse(responseCode = "422", description = "Sessao encerrada ou associado UNABLE_TO_VOTE")
+    @ApiResponse(responseCode = "503", description = Erros.EXTERNO)
     @PostMapping("/votos")
     @ResponseStatus(HttpStatus.CREATED)
     public VotoResponse votar(@PathVariable Long pautaId, @Valid @RequestBody VotoRequest request) {
@@ -45,10 +42,8 @@ public class VotoController {
     }
 
     @Operation(summary = "Contabilizar votos e obter o resultado da pauta")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Apuracao da pauta"),
-            @ApiResponse(responseCode = "404", description = "A pauta nao possui sessao de votacao")
-    })
+    @ApiResponse(responseCode = "200", description = "Apuracao da pauta")
+    @ApiResponse(responseCode = "404", description = "A pauta nao possui sessao de votacao")
     @GetMapping("/resultado")
     public ResultadoResponse resultado(@PathVariable Long pautaId) {
         return service.apurar(pautaId);

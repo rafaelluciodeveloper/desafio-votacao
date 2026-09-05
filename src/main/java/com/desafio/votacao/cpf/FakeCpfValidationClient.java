@@ -24,12 +24,14 @@ public class FakeCpfValidationClient implements CpfValidationClient {
 
         // ~30% dos casos: CPF invalido -> 404
         if (random.nextInt(100) < 30) {
-            log.info("Validacao de CPF [{}]: invalido", Cpf.mascarar(cpf));
+            log.atInfo().setMessage("Validacao de CPF [{}]: invalido")
+                    .addArgument(() -> Cpf.mascarar(cpf)).log();
             throw new CpfInvalidoException(cpf);
         }
 
         StatusVoto status = random.nextBoolean() ? StatusVoto.ABLE_TO_VOTE : StatusVoto.UNABLE_TO_VOTE;
-        log.info("Validacao de CPF [{}]: valido, status={}", Cpf.mascarar(cpf), status);
+        log.atInfo().setMessage("Validacao de CPF [{}]: valido, status={}")
+                .addArgument(() -> Cpf.mascarar(cpf)).addArgument(status).log();
         return new CpfValidationResult(status);
     }
 }

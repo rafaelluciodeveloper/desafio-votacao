@@ -2,7 +2,6 @@ package com.desafio.votacao.cpf;
 
 import com.desafio.votacao.config.VotacaoProperties;
 import com.desafio.votacao.exception.ExternalServiceException;
-import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -44,7 +43,7 @@ public class HttpCpfValidationClient implements CpfValidationClient {
                     .onStatus(status -> status.isSameCodeAs(HttpStatus.NOT_FOUND), (req, res) -> {
                         // Um 404 so significa "CPF invalido" se veio do proprio servico (JSON).
                         // Gateways e roteadores tambem respondem 404 (HTML) quando o servico nao
-                        // existe mais - tratar isso como CPF invalido reprovaria todo mundo.
+                        // existe mais - tratar isso como CPF invalido reprovaria qualquer associado.
                         if (!respondeJson(res)) {
                             throw new ExternalServiceException(
                                     "Servico de validacao de CPF nao encontrado em " + config.baseUrl(), null);
@@ -57,7 +56,8 @@ public class HttpCpfValidationClient implements CpfValidationClient {
                 throw new ExternalServiceException(
                         "Resposta invalida do servico de validacao de CPF", null);
             }
-            log.info("Validacao de CPF [{}]: valido, status={}", Cpf.mascarar(cpf), resultado.status());
+            log.atInfo().setMessage("Validacao de CPF [{}]: valido, status={}")
+                    .addArgument(() -> Cpf.mascarar(cpf)).addArgument(resultado.status()).log();
             return resultado;
         } catch (RestClientException ex) {
             throw new ExternalServiceException(
@@ -65,7 +65,7 @@ public class HttpCpfValidationClient implements CpfValidationClient {
         }
     }
 
-    private boolean respondeJson(ClientHttpResponse response) throws IOException {
+    private boolean respondeJson(ClientHttpResponse response) {
         MediaType contentType = response.getHeaders().getContentType();
         return contentType != null && MediaType.APPLICATION_JSON.isCompatibleWith(contentType);
     }

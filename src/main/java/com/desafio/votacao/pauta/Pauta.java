@@ -35,9 +35,9 @@ public class Pauta {
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao;
 
-    public Pauta(String titulo, String descricao) {
+    public Pauta(String titulo, String descricao, LocalDateTime dataCriacao) {
         this.titulo = titulo;
         this.descricao = descricao;
-        this.dataCriacao = LocalDateTime.now();
+        this.dataCriacao = dataCriacao;
     }
 }

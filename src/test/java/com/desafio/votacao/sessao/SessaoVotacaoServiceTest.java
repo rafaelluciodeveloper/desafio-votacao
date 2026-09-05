@@ -10,8 +10,9 @@ import com.desafio.votacao.exception.ConflictException;
 import com.desafio.votacao.pauta.Pauta;
 import com.desafio.votacao.pauta.PautaService;
 import com.desafio.votacao.sessao.dto.AbrirSessaoRequest;
-import java.time.Duration;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,10 @@ class SessaoVotacaoServiceTest {
     @Mock
     private PautaService pautaService;
 
+    private static final ZoneId ZONA = ZoneId.of("America/Sao_Paulo");
+    private static final LocalDateTime AGORA = LocalDateTime.of(2026, 9, 5, 10, 0);
+    private static final Clock RELOGIO = Clock.fixed(AGORA.atZone(ZONA).toInstant(), ZONA);
+
     private SessaoVotacaoService service;
 
     @BeforeEach
@@ -35,8 +40,8 @@ class SessaoVotacaoServiceTest {
                 new VotacaoProperties.Sessao(1),
                 new VotacaoProperties.CpfClient(VotacaoProperties.CpfClient.Modo.FAKE, "http://localhost"),
                 new VotacaoProperties.Ui(""));
-        service = new SessaoVotacaoService(repository, pautaService, props);
-        when(pautaService.buscarPorId(1L)).thenReturn(new Pauta("p", "d"));
+        service = new SessaoVotacaoService(repository, pautaService, props, RELOGIO);
+        when(pautaService.buscarPorId(1L)).thenReturn(pauta());
     }
 
     @Test
@@ -46,8 +51,8 @@ class SessaoVotacaoServiceTest {
 
         SessaoVotacao sessao = service.abrir(1L, null);
 
-        long minutos = Duration.between(sessao.getDataAbertura(), sessao.getDataEncerramento()).toMinutes();
-        assertThat(minutos).isEqualTo(1);
+        assertThat(sessao.getDataAbertura()).isEqualTo(AGORA);
+        assertThat(sessao.getDataEncerramento()).isEqualTo(AGORA.plusMinutes(1));
     }
 
     @Test
@@ -57,15 +62,12 @@ class SessaoVotacaoServiceTest {
 
         SessaoVotacao sessao = service.abrir(1L, new AbrirSessaoRequest(15));
 
-        long minutos = Duration.between(sessao.getDataAbertura(), sessao.getDataEncerramento()).toMinutes();
-        assertThat(minutos).isEqualTo(15);
+        assertThat(sessao.getDataEncerramento()).isEqualTo(AGORA.plusMinutes(15));
     }
 
     @Test
     void deveImpedirAberturaSeJaExisteSessaoAberta() {
-        LocalDateTime agora = LocalDateTime.now();
-        SessaoVotacao aberta = new SessaoVotacao(new Pauta("p", "d"),
-                agora.minusMinutes(1), agora.plusMinutes(5));
+        SessaoVotacao aberta = new SessaoVotacao(pauta(), AGORA.minusMinutes(1), AGORA.plusMinutes(5));
         when(repository.findByPautaId(1L)).thenReturn(Optional.of(aberta));
 
         assertThatThrownBy(() -> service.abrir(1L, null))
@@ -74,13 +76,15 @@ class SessaoVotacaoServiceTest {
 
     @Test
     void deveImpedirReaberturaDeSessaoJaEncerrada() {
-        LocalDateTime agora = LocalDateTime.now();
-        SessaoVotacao encerrada = new SessaoVotacao(new Pauta("p", "d"),
-                agora.minusMinutes(10), agora.minusMinutes(5));
+        SessaoVotacao encerrada = new SessaoVotacao(pauta(), AGORA.minusMinutes(10), AGORA.minusMinutes(5));
         when(repository.findByPautaId(1L)).thenReturn(Optional.of(encerrada));
 
         // Reabrir descartaria a apuracao e permitiria voto em dobro na mesma pauta.
         assertThatThrownBy(() -> service.abrir(1L, null))
                 .isInstanceOf(ConflictException.class);
+    }
+
+    private Pauta pauta() {
+        return new Pauta("p", "d", AGORA);
     }
 }

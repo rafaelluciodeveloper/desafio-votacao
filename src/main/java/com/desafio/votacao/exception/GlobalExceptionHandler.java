@@ -1,6 +1,7 @@
 package com.desafio.votacao.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.slf4j.Logger;
@@ -22,6 +23,12 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    private final Clock clock;
+
+    public GlobalExceptionHandler(Clock clock) {
+        this.clock = clock;
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(ResourceNotFoundException ex, HttpServletRequest req) {
@@ -92,7 +99,7 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ApiError> build(HttpStatus status, String message, HttpServletRequest req,
                                            List<ApiError.FieldErrorDetail> fieldErrors) {
         ApiError body = new ApiError(
-                OffsetDateTime.now(),
+                OffsetDateTime.now(clock),
                 status.value(),
                 status.getReasonPhrase(),
                 message,

@@ -6,6 +6,7 @@ import com.desafio.votacao.exception.ResourceNotFoundException;
 import com.desafio.votacao.pauta.Pauta;
 import com.desafio.votacao.pauta.PautaService;
 import com.desafio.votacao.sessao.dto.AbrirSessaoRequest;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -20,13 +21,16 @@ public class SessaoVotacaoService {
 
     private final SessaoVotacaoRepository repository;
     private final PautaService pautaService;
+    private final Clock clock;
     private final int duracaoPadraoMinutos;
 
     public SessaoVotacaoService(SessaoVotacaoRepository repository,
                                 PautaService pautaService,
-                                VotacaoProperties properties) {
+                                VotacaoProperties properties,
+                                Clock clock) {
         this.repository = repository;
         this.pautaService = pautaService;
+        this.clock = clock;
         this.duracaoPadraoMinutos = properties.sessao().duracaoPadraoMinutos();
     }
 
@@ -44,7 +48,7 @@ public class SessaoVotacaoService {
                 ? request.duracaoMinutos()
                 : duracaoPadraoMinutos;
 
-        LocalDateTime abertura = LocalDateTime.now();
+        LocalDateTime abertura = LocalDateTime.now(clock);
         SessaoVotacao sessao = new SessaoVotacao(pauta, abertura, abertura.plusMinutes(duracao));
         sessao = repository.save(sessao);
         log.info("Sessao aberta id={} pautaId={} duracaoMin={} encerramento={}",
@@ -54,7 +58,8 @@ public class SessaoVotacaoService {
 
     @Transactional(readOnly = true)
     public SessaoVotacao buscarPorPauta(Long pautaId) {
-        return encontrarPorPauta(pautaId)
+        // Chama o repositorio direto: auto-invocacao nao passa pelo proxy transacional.
+        return repository.findByPautaId(pautaId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Nenhuma sessao de votacao encontrada para a pauta id=" + pautaId));
     }

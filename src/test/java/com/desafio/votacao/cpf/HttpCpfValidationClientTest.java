@@ -61,7 +61,7 @@ class HttpCpfValidationClientTest {
     @Test
     void naoDeveTratar404DeGatewayComoCpfInvalido() {
         // Servico fora do ar: o roteador (ex.: heroku-router "No such app") responde 404 HTML.
-        // Tratar isso como CPF invalido reprovaria todo associado silenciosamente.
+        // Tratar isso como CPF invalido reprovaria cada associado silenciosamente.
         server.expect(requestTo(BASE_URL + "/users/" + CPF))
                 .andRespond(withStatus(HttpStatus.NOT_FOUND)
                         .contentType(MediaType.TEXT_HTML)
