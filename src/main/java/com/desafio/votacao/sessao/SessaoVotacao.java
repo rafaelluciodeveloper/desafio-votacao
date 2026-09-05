@@ -50,6 +50,12 @@ public class SessaoVotacao {
 
     /**
      * Indica se a sessao esta aberta no instante informado.
+     *
+     * <p>A janela e fechada no inicio e aberta no fim ({@code [abertura, encerramento)}): um voto
+     * que chega exatamente no encerramento ja e recusado.
+     *
+     * @param instante momento avaliado
+     * @return {@code true} se a sessao aceita votos nesse instante
      */
     public boolean estaAberta(LocalDateTime instante) {
         return !instante.isBefore(dataAbertura) && instante.isBefore(dataEncerramento);

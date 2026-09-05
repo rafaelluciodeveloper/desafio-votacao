@@ -56,6 +56,8 @@ public class TelaService {
 
     /**
      * Tela inicial: lista de pautas para o associado escolher.
+     *
+     * @return tela {@code SELECAO}; cada item leva a pauta no corpo da acao
      */
     public Tela pautas() {
         List<ItemSelecao> itens = pautaService.listar().stream()
@@ -69,7 +71,11 @@ public class TelaService {
     }
 
     /**
-     * Tela de votacao da pauta. Se nao houver sessao aberta, devolve a tela de resultado.
+     * Tela de votacao da pauta.
+     *
+     * @param request pauta escolhida
+     * @return tela com campo de CPF e os botoes Sim/Nao; sem sessao aberta, devolve o resultado
+     * @throws com.desafio.votacao.exception.ResourceNotFoundException se a pauta nao existir
      */
     public Tela votacao(PautaAcaoRequest request) {
         Pauta pauta = pautaService.buscarPorId(request.pautaId());
@@ -99,6 +105,9 @@ public class TelaService {
 
     /**
      * Registra o voto e devolve a tela de confirmacao.
+     *
+     * @param request pauta, opcao e CPF do associado
+     * @return tela de confirmacao, com atalho para o resultado
      */
     public Tela votar(VotoAcaoRequest request) {
         votoService.registrar(request.pautaId(), new VotoRequest(request.associadoId(), request.opcao()));
@@ -111,6 +120,9 @@ public class TelaService {
 
     /**
      * Tela com a apuracao da pauta.
+     *
+     * @param request pauta a apurar
+     * @return tela com situacao da sessao, totais por opcao e resultado
      */
     public Tela resultado(PautaAcaoRequest request) {
         ResultadoResponse apuracao = votoService.apurar(request.pautaId());
@@ -127,6 +139,9 @@ public class TelaService {
 
     /**
      * Tela de erro no formato que o app sabe renderizar.
+     *
+     * @param mensagem motivo exibido ao usuario
+     * @return tela {@code FORMULARIO} com o motivo e o botao de voltar
      */
     public Tela erro(String mensagem) {
         return new TelaFormulario(
@@ -148,6 +163,9 @@ public class TelaService {
      * Monta a URL de callback. O dominio vem da configuracao ({@code votacao.ui.base-url});
      * vazio, deriva da propria requisicao - o que faz emulador e dispositivo fisico
      * funcionarem sem alteracao de codigo.
+     *
+     * @param path caminho da rota de tela, de {@link TelaRotas}
+     * @return URL absoluta que o app deve chamar
      */
     private String url(String path) {
         String base = StringUtils.hasText(baseUrlConfigurada)

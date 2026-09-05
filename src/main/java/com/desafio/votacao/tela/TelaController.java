@@ -33,18 +33,35 @@ public class TelaController {
         this.service = service;
     }
 
+    /**
+     * Entrada do fluxo. Aceita GET (primeira carga do app) e POST (botao "Voltar" das telas).
+     *
+     * @return tela {@code SELECAO} com as pautas em deliberacao
+     */
     @Operation(summary = "Tela SELECAO com as pautas em deliberacao (entrada do fluxo)")
     @RequestMapping(value = TelaRotas.PAUTAS, method = {RequestMethod.GET, RequestMethod.POST})
     public Tela pautas() {
         return service.pautas();
     }
 
+    /**
+     * Tela de votacao da pauta.
+     *
+     * @param request pauta escolhida na tela de selecao
+     * @return tela de votacao, ou a de resultado se a sessao ja estiver encerrada
+     */
     @Operation(summary = "Tela FORMULARIO de votacao da pauta")
     @PostMapping(TelaRotas.VOTACAO)
     public Tela votacao(@Valid @RequestBody PautaAcaoRequest request) {
         return service.votacao(request);
     }
 
+    /**
+     * Registra o voto enviado pela tela.
+     *
+     * @param request corpo do botao (pauta e opcao) somado ao CPF digitado pelo associado
+     * @return tela de confirmacao do voto
+     */
     @Operation(summary = "Registra o voto e devolve a tela de confirmacao")
     @ApiResponse(responseCode = "200", description = "Tela de confirmacao do voto")
     @ApiResponse(responseCode = "400", description = "Tela de erro: payload invalido")
@@ -56,6 +73,12 @@ public class TelaController {
         return service.votar(request);
     }
 
+    /**
+     * Tela com a apuracao da pauta.
+     *
+     * @param request pauta a apurar
+     * @return tela com os totais e o resultado
+     */
     @Operation(summary = "Tela FORMULARIO com a apuracao da pauta")
     @PostMapping(TelaRotas.RESULTADO)
     public Tela resultado(@Valid @RequestBody PautaAcaoRequest request) {

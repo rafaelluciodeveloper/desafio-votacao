@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Endpoints REST de voto e apuracao.
+ */
 @Tag(name = "Votos", description = "Registro de votos e apuracao de resultado")
 @RestController
 @RequestMapping("/api/v1/pautas/{pautaId}")
@@ -28,6 +31,13 @@ public class VotoController {
         this.service = service;
     }
 
+    /**
+     * Registra o voto de um associado.
+     *
+     * @param pautaId pauta em votacao
+     * @param request CPF do associado e opcao ({@code SIM} ou {@code NAO})
+     * @return confirmacao do voto registrado
+     */
     @Operation(summary = "Registrar voto de um associado na pauta")
     @ApiResponse(responseCode = "201", description = "Voto registrado")
     @ApiResponse(responseCode = "400", description = Erros.VALIDACAO)
@@ -41,6 +51,12 @@ public class VotoController {
         return VotoResponse.from(service.registrar(pautaId, request));
     }
 
+    /**
+     * Apura a votacao da pauta.
+     *
+     * @param pautaId pauta apurada
+     * @return totais por opcao e o resultado ({@code APROVADA}, {@code REPROVADA} ou {@code EMPATE})
+     */
     @Operation(summary = "Contabilizar votos e obter o resultado da pauta")
     @ApiResponse(responseCode = "200", description = "Apuracao da pauta")
     @ApiResponse(responseCode = "404", description = "A pauta nao possui sessao de votacao")

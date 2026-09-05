@@ -5,6 +5,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Beans de infraestrutura da aplicacao.
+ */
 @Configuration
 @EnableConfigurationProperties(VotacaoProperties.class)
 public class AppConfig {
@@ -13,6 +16,8 @@ public class AppConfig {
      * Relogio da aplicacao, injetado em vez de chamar {@code LocalDateTime.now()} direto.
      * <p>Deixa o fuso explicito e torna a janela da sessao de votacao verificavel nos testes
      * sem depender do relogio da maquina.
+     *
+     * @return o relogio do sistema, no fuso default da JVM
      */
     @Bean
     public Clock clock() {

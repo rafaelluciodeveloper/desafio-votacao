@@ -14,6 +14,12 @@ public record VotoResponse(
         OpcaoVoto opcao,
         LocalDateTime dataVoto
 ) {
+    /**
+     * Converte a entidade na confirmacao exposta pela API.
+     *
+     * @param voto entidade de origem
+     * @return o voto no formato de resposta
+     */
     public static VotoResponse from(Voto voto) {
         return new VotoResponse(
                 voto.getId(),

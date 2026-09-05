@@ -340,24 +340,45 @@ Relatório de cobertura em `target/site/jacoco/index.html`: **97,8% de linhas** 
 - **Telas** (`TelaIntegrationTest`) – contrato do Anexo 1: tipo da tela, campos, URLs e `body` dos
   botões, fluxo voto → resultado e erro devolvido como tela.
 
+### Documentação do código (Javadoc)
+
+```bash
+mvn javadoc:javadoc          # target/reports/apidocs/index.html
+```
+
+Cada pacote tem um `package-info.java` explicando seu papel e as decisões que valem para ele
+todo — é por onde começar a ler o projeto. Classes, métodos públicos de service/controller/
+repository e as exceções que cada operação pode lançar estão documentados; DTOs são descritos
+pelas anotações `@Schema`, que alimentam o Swagger.
+
+O plugin roda com `doclint=all,-missing` e `failOnWarnings=true`: **link quebrado, HTML inválido
+ou `@param` inexistente derrubam o build**, mas não se exige Javadoc em construtor de exceção ou
+constante de enum — documentação que só repetiria o nome do símbolo.
+
 ### Análise estática (SonarQube)
 
 O `docker-compose.yml` traz um SonarQube em um profile separado, para não subir junto no uso comum:
 
 ```bash
-# 1. Subir o SonarQube (leva ~1 min para ficar UP)
+# 1. Subir o SonarQube (leva ~1 min até ficar UP; acompanhe com "docker compose ps")
 docker compose --profile qualidade up -d sonarqube
-#   porta configurável: SONAR_PORT=9002 docker compose --profile qualidade up -d sonarqube
 
 # 2. Gerar o relatório de cobertura e enviar a análise
 mvn clean verify
 mvn sonar:sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=<TOKEN>
-
-# 3. Dashboard: http://localhost:9000/dashboard?id=desafio-votacao
 ```
 
-O token sai em *My Account → Security → Generate Token* (login inicial `admin`/`admin`). O
-`sonar-maven-plugin` e o caminho do relatório do JaCoCo já estão configurados no `pom.xml`.
+Dashboard em <http://localhost:9000/dashboard?id=desafio-votacao>. Login inicial `admin`/`admin`;
+o token sai em *My Account → Security → Generate Token*. O `sonar-maven-plugin` e o caminho do
+relatório XML do JaCoCo já estão no `pom.xml`, então a análise é um comando só depois do build.
+
+Se a porta 9000 já estiver ocupada na sua máquina, troque com `SONAR_PORT` — lembrando de usar a
+mesma porta na URL da análise:
+
+```bash
+SONAR_PORT=9002 docker compose --profile qualidade up -d sonarqube
+mvn sonar:sonar -Dsonar.host.url=http://localhost:9002 -Dsonar.token=<TOKEN>
+```
 
 Resultado da última análise:
 

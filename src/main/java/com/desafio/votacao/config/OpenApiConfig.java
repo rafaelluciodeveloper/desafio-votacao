@@ -13,6 +13,9 @@ import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Documentacao OpenAPI da API.
+ */
 @Configuration
 public class OpenApiConfig {
 
@@ -20,6 +23,11 @@ public class OpenApiConfig {
     private static final String REF_TELA = "#/components/schemas/TelaFormulario";
     private static final String PREFIXO_TELAS = "/api/v1/ui";
 
+    /**
+     * Metadados da especificacao publicada no Swagger UI.
+     *
+     * @return titulo, versao e descricao da API
+     */
     @Bean
     public OpenAPI votacaoOpenAPI() {
         return new OpenAPI().info(new Info()
@@ -37,6 +45,8 @@ public class OpenApiConfig {
      *
      * <p>Tambem remove o 200 que o springdoc assume por padrao quando a operacao ja declara 201:
      * sem isso a documentacao anuncia um status que a API nunca devolve.
+     *
+     * @return o customizador aplicado a especificacao gerada
      */
     @Bean
     public OpenApiCustomizer corpoPadraoDosErros() {

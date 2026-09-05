@@ -10,6 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Regras de cadastro e consulta de pautas.
+ */
 @Service
 public class PautaService {
 
@@ -23,6 +26,12 @@ public class PautaService {
         this.clock = clock;
     }
 
+    /**
+     * Cadastra uma nova pauta, datada pelo relogio da aplicacao.
+     *
+     * @param request dados informados na chamada
+     * @return a pauta persistida
+     */
     @Transactional
     public Pauta criar(PautaRequest request) {
         Pauta pauta = repository.save(
@@ -31,11 +40,23 @@ public class PautaService {
         return pauta;
     }
 
+    /**
+     * Lista as pautas cadastradas.
+     *
+     * @return todas as pautas
+     */
     @Transactional(readOnly = true)
     public List<Pauta> listar() {
         return repository.findAll();
     }
 
+    /**
+     * Busca uma pauta pelo identificador.
+     *
+     * @param id identificador da pauta
+     * @return a pauta correspondente
+     * @throws ResourceNotFoundException se nao existir pauta com esse id
+     */
     @Transactional(readOnly = true)
     public Pauta buscarPorId(Long id) {
         return repository.findById(id)

@@ -128,6 +128,21 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Javadoc do codigo: mvn javadoc:javadoc -> target/reports/apidocs/index.html -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <!-- Valida sintaxe, HTML e referencias ({@link} quebrado quebra o build),
+                         sem exigir javadoc em construtor de excecao e constante de enum. -->
+                    <doclint>all,-missing</doclint>
+                    <failOnWarnings>true</failOnWarnings>
+                    <quiet>true</quiet>
+                    <doctitle>API de Votacao</doctitle>
+                    <windowtitle>API de Votacao</windowtitle>
+                </configuration>
+            </plugin>
+
             <!-- Analise estatica no SonarQube (ver docker-compose.yml, profile "qualidade") -->
             <plugin>
                 <groupId>org.sonarsource.scanner.maven</groupId>

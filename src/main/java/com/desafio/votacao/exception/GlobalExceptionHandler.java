@@ -64,6 +64,10 @@ public class GlobalExceptionHandler {
 
     /**
      * JSON mal formado ou valor de enum invalido (ex.: opcao "TALVEZ") -> 400, nao 500.
+     *
+     * @param ex falha de desserializacao do corpo
+     * @param req requisicao, usada para preencher o caminho no corpo do erro
+     * @return {@code 400} com o corpo padrao de erro
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex, HttpServletRequest req) {
@@ -73,6 +77,10 @@ public class GlobalExceptionHandler {
 
     /**
      * Path variable/param com tipo incompativel (ex.: /pautas/abc) -> 400, nao 500.
+     *
+     * @param ex parametro que nao pode ser convertido
+     * @param req requisicao, usada para preencher o caminho no corpo do erro
+     * @return {@code 400} com o corpo padrao de erro
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {

@@ -38,7 +38,7 @@ services:
       - votacao-sonar-logs:/opt/sonarqube/logs
       - votacao-sonar-extensions:/opt/sonarqube/extensions
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/api/system/status | grep -q UP"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/api/system/status | grep -q '\"UP\"'"]
       interval: 15s
       timeout: 5s
       retries: 20

@@ -13,6 +13,13 @@ public record SessaoResponse(
         LocalDateTime dataEncerramento,
         String status
 ) {
+    /**
+     * Converte a entidade na representacao exposta pela API.
+     *
+     * @param sessao entidade de origem
+     * @param agora instante usado para decidir se a sessao esta aberta
+     * @return a representacao exposta pela API, com o status calculado
+     */
     public static SessaoResponse from(SessaoVotacao sessao, LocalDateTime agora) {
         String status = sessao.estaAberta(agora) ? "ABERTA" : "ENCERRADA";
         return new SessaoResponse(

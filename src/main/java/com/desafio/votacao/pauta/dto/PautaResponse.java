@@ -12,6 +12,12 @@ public record PautaResponse(
         String descricao,
         LocalDateTime dataCriacao
 ) {
+    /**
+     * Converte a entidade na representacao exposta pela API.
+     *
+     * @param pauta entidade de origem
+     * @return a pauta no formato de resposta
+     */
     public static PautaResponse from(Pauta pauta) {
         return new PautaResponse(
                 pauta.getId(),

@@ -18,6 +18,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Regras de registro de voto e apuracao.
+ */
 @Service
 public class VotoService {
 
@@ -38,6 +41,21 @@ public class VotoService {
         this.clock = clock;
     }
 
+    /**
+     * Registra o voto de um associado, na ordem: sessao aberta, associado apto, voto inedito.
+     *
+     * <p>A unicidade e conferida antes por cortesia, mas quem a garante e a constraint do banco:
+     * sob concorrencia, duas requisicoes simultaneas do mesmo associado passariam pela
+     * verificacao previa antes de qualquer insercao ser efetivada.
+     *
+     * @param pautaId pauta em votacao
+     * @param request CPF do associado e opcao escolhida
+     * @return o voto persistido
+     * @throws BusinessException se a sessao estiver fechada ou o associado nao estiver apto
+     * @throws ConflictException se o associado ja tiver votado nesta pauta
+     * @throws com.desafio.votacao.cpf.CpfInvalidoException se o CPF for invalido
+     * @throws com.desafio.votacao.exception.ExternalServiceException se o servico de CPF falhar
+     */
     @Transactional
     public Voto registrar(Long pautaId, VotoRequest request) {
         SessaoVotacao sessao = sessaoService.buscarPorPauta(pautaId);
@@ -70,6 +88,17 @@ public class VotoService {
         }
     }
 
+    /**
+     * Apura a votacao da pauta.
+     *
+     * <p>A contagem e feita por agregacao no banco: o custo nao cresce com o numero de votos.
+     * A apuracao pode ser consultada com a sessao ainda aberta - o campo
+     * {@code sessaoEncerrada} da resposta diz se o resultado ja e definitivo.
+     *
+     * @param pautaId pauta apurada
+     * @return totais por opcao e o resultado consolidado
+     * @throws com.desafio.votacao.exception.ResourceNotFoundException se a pauta nao tiver sessao
+     */
     @Transactional(readOnly = true)
     public ResultadoResponse apurar(Long pautaId) {
         SessaoVotacao sessao = sessaoService.buscarPorPauta(pautaId);

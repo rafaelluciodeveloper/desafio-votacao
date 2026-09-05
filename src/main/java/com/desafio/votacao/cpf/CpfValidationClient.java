@@ -10,8 +10,10 @@ public interface CpfValidationClient {
     /**
      * Valida o CPF junto ao servico externo.
      *
+     * @param cpf CPF do associado, somente digitos
+     * @return aptidao do associado ({@code ABLE_TO_VOTE} / {@code UNABLE_TO_VOTE})
      * @throws CpfInvalidoException se o CPF for invalido (mapeado para HTTP 404)
-     * @return aptidao do associado (ABLE_TO_VOTE / UNABLE_TO_VOTE)
+     * @throws com.desafio.votacao.exception.ExternalServiceException se o servico falhar
      */
     CpfValidationResult validar(String cpf);
 }

@@ -14,6 +14,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Regras de abertura e consulta da sessao de votacao.
+ */
 @Service
 public class SessaoVotacaoService {
 
@@ -34,6 +37,15 @@ public class SessaoVotacaoService {
         this.duracaoPadraoMinutos = properties.sessao().duracaoPadraoMinutos();
     }
 
+    /**
+     * Abre a sessao de votacao da pauta, a partir do instante atual.
+     *
+     * @param pautaId pauta a ser deliberada
+     * @param request duracao em minutos; {@code null} ou sem duracao usa o default configurado
+     * @return a sessao persistida
+     * @throws ConflictException se a pauta ja possuir sessao, aberta ou encerrada
+     * @throws com.desafio.votacao.exception.ResourceNotFoundException se a pauta nao existir
+     */
     @Transactional
     public SessaoVotacao abrir(Long pautaId, AbrirSessaoRequest request) {
         Pauta pauta = pautaService.buscarPorId(pautaId);
@@ -56,6 +68,13 @@ public class SessaoVotacaoService {
         return sessao;
     }
 
+    /**
+     * Busca a sessao de votacao da pauta.
+     *
+     * @param pautaId pauta consultada
+     * @return a sessao da pauta
+     * @throws ResourceNotFoundException se a pauta ainda nao tiver sessao
+     */
     @Transactional(readOnly = true)
     public SessaoVotacao buscarPorPauta(Long pautaId) {
         // Chama o repositorio direto: auto-invocacao nao passa pelo proxy transacional.
@@ -67,6 +86,9 @@ public class SessaoVotacaoService {
     /**
      * Variante sem excecao, para fluxos que precisam decidir com base na ausencia de sessao
      * (ex.: montagem das telas do app mobile).
+     *
+     * @param pautaId pauta consultada
+     * @return a sessao da pauta, ou vazio se ainda nao houver
      */
     @Transactional(readOnly = true)
     public Optional<SessaoVotacao> encontrarPorPauta(Long pautaId) {
