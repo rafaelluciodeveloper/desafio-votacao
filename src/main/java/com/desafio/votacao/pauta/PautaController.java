@@ -2,7 +2,10 @@ package com.desafio.votacao.pauta;
 
 import com.desafio.votacao.pauta.dto.PautaRequest;
 import com.desafio.votacao.pauta.dto.PautaResponse;
+import com.desafio.votacao.config.OpenApiConfig.Erros;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -28,6 +31,10 @@ public class PautaController {
     }
 
     @Operation(summary = "Cadastrar uma nova pauta")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Pauta cadastrada"),
+            @ApiResponse(responseCode = "400", description = Erros.VALIDACAO)
+    })
     @PostMapping
     public ResponseEntity<PautaResponse> criar(@Valid @RequestBody PautaRequest request,
                                                UriComponentsBuilder uriBuilder) {
@@ -43,6 +50,10 @@ public class PautaController {
     }
 
     @Operation(summary = "Consultar uma pauta por id")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pauta encontrada"),
+            @ApiResponse(responseCode = "404", description = Erros.NAO_ENCONTRADO)
+    })
     @GetMapping("/{id}")
     public PautaResponse buscar(@PathVariable Long id) {
         return PautaResponse.from(service.buscarPorId(id));
