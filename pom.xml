@@ -20,6 +20,10 @@
     <properties>
         <java.version>21</java.version>
         <jacoco.version>0.8.13</jacoco.version>
+        <sonar.version>5.1.0.4751</sonar.version>
+        <sonar.projectKey>desafio-votacao</sonar.projectKey>
+        <sonar.projectName>API de Votacao</sonar.projectName>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <springdoc.version>3.1.0</springdoc.version>
     </properties>
 
@@ -123,6 +127,12 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- Analise estatica no SonarQube (ver docker-compose.yml, profile "qualidade") -->
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>${sonar.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

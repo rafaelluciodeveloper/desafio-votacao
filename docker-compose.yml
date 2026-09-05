@@ -1,5 +1,10 @@
-# PostgreSQL para cenarios de producao / testes de performance (Tarefa Bonus 2).
-# Uso: docker compose up -d  e  mvn spring-boot:run -Dspring-boot.run.profiles=postgres
+# Infraestrutura de apoio ao desenvolvimento.
+#
+#   docker compose up -d postgres   PostgreSQL (Tarefa Bonus 2 - performance)
+#   docker compose --profile qualidade up -d   + SonarQube (analise estatica)
+#
+# O SonarQube fica em um profile separado para nao subir junto no uso comum:
+# ele consome bem mais memoria que o banco e so e necessario ao rodar a analise.
 services:
   postgres:
     image: postgres:16-alpine
@@ -19,5 +24,28 @@ services:
       timeout: 3s
       retries: 5
 
+  sonarqube:
+    image: sonarqube:community
+    container_name: votacao-sonarqube
+    profiles: ["qualidade"]
+    environment:
+      # Banco embutido: suficiente para analise local, nao para uso continuo.
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    ports:
+      - "${SONAR_PORT:-9000}:9000"
+    volumes:
+      - votacao-sonar-data:/opt/sonarqube/data
+      - votacao-sonar-logs:/opt/sonarqube/logs
+      - votacao-sonar-extensions:/opt/sonarqube/extensions
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/api/system/status | grep -q UP"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
 volumes:
   votacao-pgdata:
+  votacao-sonar-data:
+  votacao-sonar-logs:
+  votacao-sonar-extensions:

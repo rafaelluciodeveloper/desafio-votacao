@@ -324,7 +324,8 @@ mvn test
 
 Cobertura de testes:
 
-Relatório de cobertura em `target/site/jacoco/index.html` (atualmente **89%** de instruções).
+Relatório de cobertura em `target/site/jacoco/index.html`: **97,8% de linhas** e **80% de branches**
+(53 testes).
 
 - **Unitários** (`VotoServiceTest`, `SessaoVotacaoServiceTest`) – regras de negócio isoladas com
   Mockito: sessão fechada, CPF inválido (404), `UNABLE_TO_VOTE`, voto duplicado, corrida de voto
@@ -338,6 +339,47 @@ Relatório de cobertura em `target/site/jacoco/index.html` (atualmente **89%** d
   sessão na mesma pauta (409) e os caminhos de erro de borda (400/404/405).
 - **Telas** (`TelaIntegrationTest`) – contrato do Anexo 1: tipo da tela, campos, URLs e `body` dos
   botões, fluxo voto → resultado e erro devolvido como tela.
+
+### Análise estática (SonarQube)
+
+O `docker-compose.yml` traz um SonarQube em um profile separado, para não subir junto no uso comum:
+
+```bash
+# 1. Subir o SonarQube (leva ~1 min para ficar UP)
+docker compose --profile qualidade up -d sonarqube
+#   porta configurável: SONAR_PORT=9002 docker compose --profile qualidade up -d sonarqube
+
+# 2. Gerar o relatório de cobertura e enviar a análise
+mvn clean verify
+mvn sonar:sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=<TOKEN>
+
+# 3. Dashboard: http://localhost:9000/dashboard?id=desafio-votacao
+```
+
+O token sai em *My Account → Security → Generate Token* (login inicial `admin`/`admin`). O
+`sonar-maven-plugin` e o caminho do relatório do JaCoCo já estão configurados no `pom.xml`.
+
+Resultado da última análise:
+
+| Métrica | Valor |
+|---------|-------|
+| Quality Gate | **OK** |
+| Bugs | 0 — Reliability **A** |
+| Vulnerabilidades / Hotspots | 0 / 0 — Security **A** |
+| Code smells | 0 — Maintainability **A** (dívida técnica 0 min) |
+| Cobertura | 95,3% |
+| Duplicação | 0,0% |
+
+A primeira análise apontou 3 bugs e 27 code smells; o que veio de lá:
+
+- **Relógio injetável.** Havia oito `LocalDateTime.now()` espalhados, sem fuso explícito. Agora um
+  bean `Clock` é injetado e as entidades recebem o instante em vez de capturá-lo — o que também
+  permitiu testar a janela da sessão com `Clock.fixed`, sem depender do relógio da máquina.
+- **Rota de tela duplicada.** O caminho das telas estava escrito no `@RequestMapping` do controller
+  *e* no service que monta a URL de callback. Mudar um lado faria as telas apontarem para uma rota
+  inexistente, sem erro de compilação. Unificado em `TelaRotas`.
+- **`@Transactional` sem efeito.** `buscarPorPauta` chamava `encontrarPorPauta` via `this`:
+  auto-invocação não passa pelo proxy do Spring, então a anotação era decorativa.
 
 ## Tarefas bônus
 
