@@ -1,8 +1,11 @@
 package com.desafio.votacao;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,7 +15,9 @@ import com.desafio.votacao.cpf.CpfInvalidoException;
 import com.desafio.votacao.cpf.CpfValidationClient;
 import com.desafio.votacao.cpf.CpfValidationResult;
 import com.desafio.votacao.cpf.StatusVoto;
+import com.desafio.votacao.exception.ExternalServiceException;
 import com.jayway.jsonpath.JsonPath;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -63,12 +68,9 @@ class VotacaoIntegrationTest {
                 .andExpect(jsonPath("$.status", is("ABERTA")))
                 .andReturn().getResponse().getContentAsString();
 
-        String abertura = JsonPath.read(json, "$.dataAbertura");
-        String encerramento = JsonPath.read(json, "$.dataEncerramento");
-        org.assertj.core.api.Assertions.assertThat(
-                        java.time.Duration.between(java.time.LocalDateTime.parse(abertura),
-                                java.time.LocalDateTime.parse(encerramento)).toMinutes())
-                .isEqualTo(1);
+        LocalDateTime abertura = LocalDateTime.parse(JsonPath.read(json, "$.dataAbertura"));
+        LocalDateTime encerramento = LocalDateTime.parse(JsonPath.read(json, "$.dataEncerramento"));
+        assertThat(encerramento).isEqualTo(abertura.plusMinutes(1));
     }
 
     @Test
@@ -157,6 +159,58 @@ class VotacaoIntegrationTest {
     void deveResponder404ParaRotaInexistente() throws Exception {
         mvc.perform(get("/api/v1/inexistente"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deveResponder405ParaMetodoNaoSuportado() throws Exception {
+        mvc.perform(delete("/api/v1/pautas/1"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.status", is(405)));
+    }
+
+    @Test
+    void deveResponder503QuandoServicoDeCpfEstaIndisponivel() throws Exception {
+        when(cpfValidationClient.validar(anyString()))
+                .thenThrow(new ExternalServiceException("Servico de validacao de CPF indisponivel", null));
+        long pautaId = criarPautaComSessao();
+
+        mvc.perform(post("/api/v1/pautas/" + pautaId + "/votos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"associadoId\":\"99999999999\",\"opcao\":\"SIM\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message", is("Servico de validacao de CPF indisponivel")));
+    }
+
+    @Test
+    void deveListarEConsultarPautas() throws Exception {
+        long pautaId = criarPauta("Pauta consultavel");
+
+        mvc.perform(get("/api/v1/pautas"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + pautaId + ")].titulo")
+                        .value(org.hamcrest.Matchers.hasItem("Pauta consultavel")));
+
+        mvc.perform(get("/api/v1/pautas/" + pautaId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.titulo", is("Pauta consultavel")))
+                .andExpect(jsonPath("$.dataCriacao").exists());
+    }
+
+    @Test
+    void deveResponder404ParaPautaInexistente() throws Exception {
+        mvc.perform(get("/api/v1/pautas/999999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", containsString("Pauta nao encontrada")));
+    }
+
+    @Test
+    void deveConsultarSessaoDeVotacao() throws Exception {
+        long pautaId = criarPautaComSessao();
+
+        mvc.perform(get("/api/v1/pautas/" + pautaId + "/sessao"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pautaId", is((int) pautaId)))
+                .andExpect(jsonPath("$.status", is("ABERTA")));
     }
 
     private void aptoAVotar() {

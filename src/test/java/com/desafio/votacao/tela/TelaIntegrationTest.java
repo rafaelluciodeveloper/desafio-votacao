@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.desafio.votacao.cpf.CpfValidationClient;
 import com.desafio.votacao.cpf.CpfValidationResult;
 import com.desafio.votacao.cpf.StatusVoto;
+import com.desafio.votacao.exception.ExternalServiceException;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -113,6 +114,70 @@ class TelaIntegrationTest {
                         .content("{\"pautaId\":" + pautaId + "}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.itens[0].valor", containsString("Nenhuma sessao")));
+    }
+
+    @Test
+    void pautaInexistenteDeveVirComoTelaDeErroCom404() throws Exception {
+        mvc.perform(post("/api/v1/ui/votacao")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pautaId\":999999}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.tipo", is("FORMULARIO")))
+                .andExpect(jsonPath("$.titulo", is("Nao foi possivel concluir")))
+                .andExpect(jsonPath("$.itens[0].valor", containsString("Pauta nao encontrada")))
+                .andExpect(jsonPath("$.botoes[0].titulo", is("Voltar")));
+    }
+
+    @Test
+    void payloadInvalidoDeveVirComoTelaDeErroCom400() throws Exception {
+        mvc.perform(post("/api/v1/ui/votacao")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.tipo", is("FORMULARIO")))
+                .andExpect(jsonPath("$.itens[0].valor", containsString("pautaId")));
+    }
+
+    @Test
+    void associadoInaptoDeveVirComoTelaDeErroCom422() throws Exception {
+        when(cpfValidationClient.validar(anyString()))
+                .thenReturn(new CpfValidationResult(StatusVoto.UNABLE_TO_VOTE));
+        long pautaId = criarPautaComSessao("Pauta inapto");
+
+        mvc.perform(post("/api/v1/ui/votos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pautaId\":" + pautaId + ",\"associadoId\":\"10000000003\",\"opcao\":\"SIM\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.tipo", is("FORMULARIO")))
+                .andExpect(jsonPath("$.itens[0].valor", containsString("UNABLE_TO_VOTE")));
+    }
+
+    @Test
+    void servicoDeCpfIndisponivelDeveVirComoTelaDeErroCom503() throws Exception {
+        when(cpfValidationClient.validar(anyString()))
+                .thenThrow(new ExternalServiceException("Servico de validacao de CPF indisponivel", null));
+        long pautaId = criarPautaComSessao("Pauta servico fora");
+
+        mvc.perform(post("/api/v1/ui/votos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pautaId\":" + pautaId + ",\"associadoId\":\"10000000004\",\"opcao\":\"SIM\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.tipo", is("FORMULARIO")))
+                .andExpect(jsonPath("$.itens[0].valor", containsString("indisponivel")));
+    }
+
+    @Test
+    void pautaSemVotosDeveApresentarResultadoZerado() throws Exception {
+        long pautaId = criarPautaComSessao("Pauta sem votos");
+
+        mvc.perform(post("/api/v1/ui/resultado")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pautaId\":" + pautaId + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.itens[?(@.titulo == 'Total de votos')].valor")
+                        .value(org.hamcrest.Matchers.hasItem("0")))
+                .andExpect(jsonPath("$.itens[?(@.titulo == 'Resultado')].valor")
+                        .value(org.hamcrest.Matchers.hasItem("EMPATE")));
     }
 
     private long criarPauta(String titulo) throws Exception {
