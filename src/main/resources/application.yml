@@ -2,10 +2,11 @@ spring:
   application:
     name: votacao
 
-  # Profile padrao: H2 em arquivo. Persiste entre reinicios e nao exige
-  # nenhuma dependencia externa para executar/avaliar a aplicacao.
+  # Profile padrao: H2 em arquivo, sob dev/, junto do resto do material de
+  # desenvolvimento. Persiste entre reinicios e nao exige nenhuma dependencia
+  # externa para executar/avaliar a aplicacao.
   datasource:
-    url: jdbc:h2:file:./data/votacao;AUTO_SERVER=TRUE
+    url: jdbc:h2:file:./dev/data/votacao;AUTO_SERVER=TRUE
     driver-class-name: org.h2.Driver
     username: sa
     password: ""

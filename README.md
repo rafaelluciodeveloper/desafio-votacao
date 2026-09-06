@@ -36,7 +36,7 @@ Cada associado possui um voto e as decisões são tomadas por votação em pauta
 |------|---------|---------|
 | Linguagem / Framework | Java 21 (LTS) + Spring Boot 4.1.1 | Exigência do desafio; versões atuais e suportadas |
 | Persistência | Spring Data JPA | Mapeamento objeto-relacional simples e testável |
-| Banco (default) | **H2 em arquivo** (`./data`) | Persiste entre reinícios **sem nenhuma dependência externa** para o avaliador rodar |
+| Banco (default) | **H2 em arquivo** (`dev/data`) | Persiste entre reinícios **sem nenhuma dependência externa** para o avaliador rodar |
 | Banco (produção/perf) | **PostgreSQL** via profile `postgres` | Cenário realista de alto volume |
 | Migrations | Flyway | Schema versionado e reproduzível (SQL padrão compatível com H2 e Postgres) |
 | Documentação | springdoc-openapi (Swagger UI) | Documentação viva da API |
@@ -74,12 +74,12 @@ Escolha conforme o cenário:
 | | H2 em arquivo (default) | PostgreSQL (profile `postgres`) |
 |---|---|---|
 | Dependência externa | Nenhuma | Docker |
-| Persistência | Arquivo em `./data` | Volume Docker |
+| Persistência | Arquivo em `dev/data` | Volume Docker |
 | Indicado para | Avaliar/rodar rápido | Produção e testes de performance |
 
 ### Opção 1 — H2 em arquivo (default, recomendado para avaliar)
 
-Nenhuma dependência externa. O banco é criado em `./data` e persiste entre reinícios.
+Nenhuma dependência externa. O banco é criado em `dev/data` e persiste entre reinícios.
 
 ```bash
 mvn spring-boot:run
@@ -171,7 +171,7 @@ Com a aplicação no ar:
 
 - Swagger UI: <http://localhost:8080/swagger-ui.html>
 - OpenAPI JSON: <http://localhost:8080/v3/api-docs>
-- Console H2 (profile default): <http://localhost:8080/h2-console> (JDBC URL `jdbc:h2:file:./data/votacao`)
+- Console H2 (profile default): <http://localhost:8080/h2-console> (JDBC URL `jdbc:h2:file:./dev/data/votacao`)
 - Health: <http://localhost:8080/actuator/health>
 
 A documentação cobre as 12 operações (REST + telas), agrupadas por tag, com os **status de erro
@@ -515,7 +515,7 @@ Decisões para suportar **centenas de milhares de votos**:
 - `open-in-view: false`, *batch inserts* do Hibernate e pool de conexões dimensionável.
 - Profile **PostgreSQL** + `docker-compose.yml` para o cenário de carga.
 
-Script de carga com **k6** em [`performance/load-test.js`](performance/load-test.js) (rampa até
+Script de carga com **k6** em [`dev/performance/load-test.js`](dev/performance/load-test.js) (rampa até
 200 usuários virtuais, *threshold* de p95 < 300ms). Instruções no cabeçalho do arquivo.
 
 Medições feitas neste projeto (PostgreSQL 16 em Docker, notebook):

@@ -11,7 +11,7 @@
  *      e exportar o id da pauta:
  *        export PAUTA_ID=1
  *   3. Rodar:
- *        k6 run performance/load-test.js
+ *        k6 run dev/performance/load-test.js
  *
  * Observacao: o FakeCpfValidationClient rejeita ~30% dos CPFs (404) e marca
  * parte como UNABLE_TO_VOTE (422). Logo, 404/422 sao respostas ESPERADAS aqui;

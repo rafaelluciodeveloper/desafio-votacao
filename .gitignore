@@ -3,7 +3,7 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 
 # Banco H2 em arquivo (gerado em runtime)
-data/
+dev/data/
 *.mv.db
 *.trace.db
 
